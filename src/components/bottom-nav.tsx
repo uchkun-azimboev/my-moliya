@@ -14,10 +14,10 @@ const items = [
 ]
 
 // Menyuda yo'q bo'limlar qaysi band ostida ko'rinadi (Sozlamalar — dashboard'dagi ⚙️ orqali)
-const sections: Record<string, string> = { "/settings": "/", "/categories": "/", "/clients": "/projects" }
+const sections: Record<string, string> = { "/settings": "/", "/categories": "/", "/clients": "/projects", "/budget": "/transactions" }
 
 /** "+" tugmasi faqat asosiy sahifalarda — formalar va tahrirlashda xalaqit bermasin */
-const FAB_PAGES = ["/", "/transactions", "/projects", "/goals", "/wallets"]
+const FAB_PAGES = ["/", "/transactions", "/budget", "/projects", "/goals", "/wallets"]
 
 export function BottomNav() {
   const pathname = usePathname()

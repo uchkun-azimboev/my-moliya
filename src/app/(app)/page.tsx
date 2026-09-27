@@ -37,6 +37,9 @@ type Summary = {
   shortfall_uzs: number
   goals_reserved_uzs: number
   debt_paid_month_uzs: number
+  fixed_plan_source: "budget" | "settings" | "none"
+  budget_planned_uzs: number
+  budget_over_count: number
 }
 
 export default async function DashboardPage() {
@@ -111,11 +114,19 @@ export default async function DashboardPage() {
           <b className="tabular-nums">{formatMoney(s.shortfall_uzs, "UZS")}</b> kerak.
         </Notice>
       )}
-      {s.monthly_fixed_expenses === null && (
+      {s.budget_over_count > 0 && (
+        <Notice>
+          <Link href="/budget" className="underline underline-offset-2">
+            {s.budget_over_count} ta kategoriya budjetdan oshib ketdi
+          </Link>
+        </Notice>
+      )}
+      {s.fixed_plan_source === "none" && (
         <Notice>
           <Link href="/settings" className="underline underline-offset-2">
             Oylik majburiy xarajatlarni kiriting
           </Link>{" "}
+          (Sozlamalarda yoki Budjetda &quot;Majburiy doimiy&quot; kategoriyalarga reja qo&apos;ying)
           — busiz kunlik limit ijara, kommunal kabi to&apos;lovlarni hisobga olmaydi.
         </Notice>
       )}
@@ -161,9 +172,17 @@ export default async function DashboardPage() {
         <dl className="mt-3 space-y-1.5 border-t pt-3 text-sm">
           <Row label="Sof natija" value={formatMoney(monthNet, "UZS")} />
           {Number(s.debt_paid_month_uzs) > 0 && <Row label="Qarz to'lovlari" value={formatMoney(s.debt_paid_month_uzs, "UZS")} />}
+          {Number(s.budget_planned_uzs) > 0 && (
+            <Link href="/budget" className="flex items-baseline justify-between gap-3">
+              <dt className="text-muted-foreground underline-offset-2 hover:underline">Budjet →</dt>
+              <dd className="text-right whitespace-nowrap tabular-nums">
+                {formatMoney(s.month_expense_uzs, "UZS").replace(" so'm", "")} / {formatMoney(s.budget_planned_uzs, "UZS")}
+              </dd>
+            </Link>
+          )}
           {s.monthly_fixed_expenses !== null && (
             <Row
-              label="Majburiy to'langan"
+              label={s.fixed_plan_source === "budget" ? "Majburiy (budjet)" : "Majburiy to'langan"}
               value={`${formatMoney(s.fixed_paid_uzs, "UZS").replace(" so'm", "")} / ${formatMoney(s.monthly_fixed_expenses, "UZS")}`}
             />
           )}

@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from "next"
+import { PwaSetup } from "@/components/pwa"
 import { THEME_COLORS, ThemeProvider, themeColorScript } from "@/components/theme"
 import "./globals.css"
 
 export const metadata: Metadata = {
   title: "Moliya",
   description: "Shaxsiy moliya",
+  applicationName: "Moliya",
+  formatDetection: { telephone: false },
   appleWebApp: { capable: true, title: "Moliya", statusBarStyle: "default" },
 }
 
@@ -24,6 +27,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full">
         <ThemeProvider>{children}</ThemeProvider>
+        <PwaSetup />
       </body>
     </html>
   )

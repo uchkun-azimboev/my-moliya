@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { createClient, requireUser } from "@/lib/supabase/server"
 import { FixedExpensesForm } from "./fixed-expenses-form"
+import { InstallApp } from "./install-app"
 import { ThemePicker } from "./theme-picker"
 
 export default async function SettingsPage() {
@@ -35,6 +36,11 @@ export default async function SettingsPage() {
       <section className="mb-8">
         <h2 className="mb-2 text-sm font-medium text-muted-foreground">Oylik majburiy xarajatlar</h2>
         <FixedExpensesForm value={data?.monthly_fixed_expenses ?? null} />
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-2 text-sm font-medium text-muted-foreground">Ilovani o&apos;rnatish</h2>
+        <InstallApp />
       </section>
 
       <form action={logout} className="border-t pt-6">

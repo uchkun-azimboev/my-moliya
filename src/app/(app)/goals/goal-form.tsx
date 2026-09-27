@@ -62,8 +62,8 @@ export function GoalForm({
           <span className="block text-sm font-medium">🛟 Favqulodda zaxira (shablon)</span>
           <span className="block text-xs text-muted-foreground">
             {monthlyFixed
-              ? `Oylik majburiy xarajat × 3 = ${formatMoney(monthlyFixed * 3, "UZS")} (o'zgartirish mumkin)`
-              : "Summa uchun avval Sozlamalarda oylik majburiy xarajatni kiriting — yoki summani o'zingiz yozing"}
+              ? `Oylik majburiy xarajat × 3 = ${formatMoney(monthlyFixed * 3, "UZS")} (budjet yoki sozlamadan, o'zgartirish mumkin)`
+              : "Summa uchun avval Budjetda \"Majburiy doimiy\" rejani yoki Sozlamalarda oylik majburiy xarajatni kiriting — yoki summani o'zingiz yozing"}
           </span>
         </button>
       )}

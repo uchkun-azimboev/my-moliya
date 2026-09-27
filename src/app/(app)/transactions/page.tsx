@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Plus } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
+import { TransactionTabs } from "@/components/transaction-tabs"
 import { Button } from "@/components/ui/button"
 import { NativeSelect } from "@/components/ui/native-select"
 import { formatDate, formatMoney, formatMonth, currentMonth, monthRange, recentMonths } from "@/lib/format"
@@ -90,6 +91,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
           </Button>
         }
       />
+      <TransactionTabs active="list" month={month} />
 
 
       <form className="mb-4 space-y-2" action="/transactions">
