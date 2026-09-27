@@ -6,7 +6,7 @@ import { BottomNav } from "@/components/bottom-nav"
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <main className="mx-auto max-w-md px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-28">
+      <main className="mx-auto max-w-md px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-36">
         {children}
       </main>
       <BottomNav />

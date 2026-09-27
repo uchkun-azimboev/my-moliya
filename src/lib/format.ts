@@ -65,3 +65,43 @@ export function recentMonths(n: number) {
     return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, "0")}`
   })
 }
+
+/** 41.7 → "41,7%", 40 → "40%" */
+export function formatPercent(value: number | string) {
+  const n = Math.round(Number(value) * 10) / 10
+  return `${String(n).replace(".", ",")}%`
+}
+
+/** "2026-01-31" + 1 oy → "2026-02-28" (oy oxiri qisqartiriladi) */
+export function addMonths(date: string, months: number) {
+  const [y, m, d] = date.split("-").map(Number)
+  const total = y * 12 + (m - 1) + months
+  const ny = Math.floor(total / 12)
+  const nm = (total % 12) + 1
+  const lastDay = new Date(Date.UTC(ny, nm, 0)).getUTCDate()
+  return `${ny}-${String(nm).padStart(2, "0")}-${String(Math.min(d, lastDay)).padStart(2, "0")}`
+}
+
+/** "2026-09-01" → "1-sentabr" (yil joriy bo'lsa yozilmaydi) */
+export function formatShortDate(date: string) {
+  const [y, m, d] = date.split("-").map(Number)
+  const current = Number(today().slice(0, 4))
+  return `${d}-${MONTHS[m - 1]}${y !== current ? ` ${y}` : ""}`
+}
+
+export function addDays(date: string, days: number) {
+  const d = new Date(`${date}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
+/**
+ * Retainer keyingi davri: yangi boshlanish = oldingi tugashdan keyingi kun,
+ * yangi tugash = boshlanish + 1 oy − 1 kun (1–30 sentabr → 1–31 oktabr).
+ * Tugash sanasi bo'lmasa — boshlanish 1 oy suriladi.
+ */
+export function nextPeriod(start: string, end: string | null) {
+  if (!end) return { start: addMonths(start, 1), end: null }
+  const nextStart = addDays(end, 1)
+  return { start: nextStart, end: addDays(addMonths(nextStart, 1), -1) }
+}

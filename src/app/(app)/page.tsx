@@ -1,10 +1,18 @@
 import Link from "next/link"
-import { AlertTriangle, Plus, Settings } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { AlertTriangle, ChevronRight } from "lucide-react"
 import { ensureUsdRate } from "@/lib/cbu"
-import { formatDate, formatMoney, today } from "@/lib/format"
+import { formatDate, formatMoney, formatPercent, today } from "@/lib/format"
 import { createClient, requireUser } from "@/lib/supabase/server"
 import { cn } from "@/lib/utils"
+
+type TopProject = {
+  id: string
+  name: string
+  client_name: string
+  obligation_uzs: number
+  progress: number
+  overdue: boolean
+}
 
 type Summary = {
   today: string
@@ -33,7 +41,19 @@ export default async function DashboardPage() {
 
   // Auth, bugungi CBU kursi va hisob-kitob parallel. Kurs bugun birinchi marta olingan
   // bo'lsa (kuniga bir marta), raqamlar yangi kurs bilan qayta hisoblanadi.
-  const [, rate, first] = await Promise.all([requireUser(), ensureUsdRate(supabase, today()), summaryQuery()])
+  const [, rate, first, { data: topData }] = await Promise.all([
+    requireUser(),
+    ensureUsdRate(supabase, today()),
+    summaryQuery(),
+    supabase
+      .from("project_summary")
+      .select("id, name, client_name, obligation_uzs, progress, overdue")
+      .neq("status", "done")
+      .gt("obligation_uzs", 0)
+      .order("obligation_uzs", { ascending: false })
+      .limit(3),
+  ])
+  const topProjects = (topData ?? []) as TopProject[]
   const s = rate.fetched ? (await summaryQuery()).data : first.data
 
   if (!s) {
@@ -49,11 +69,6 @@ export default async function DashboardPage() {
     <>
       <header className="mb-4 flex min-h-10 items-center justify-between">
         <h1 className="text-xl font-semibold">Moliya</h1>
-        <Button asChild variant="ghost" size="icon" aria-label="Sozlamalar">
-          <Link href="/settings">
-            <Settings className="size-5" />
-          </Link>
-        </Button>
       </header>
 
       {/* Xavfsiz pul va kunlik limit */}
@@ -91,11 +106,7 @@ export default async function DashboardPage() {
       )}
       {rateMissing && <Notice>Dollar kursini olib bo&apos;lmadi — jami pulga USD hamyonlar qo&apos;shilmadi.</Notice>}
 
-      <Button asChild className="my-4 h-12 w-full text-base">
-        <Link href="/transactions">
-          <Plus /> Tranzaksiya qo&apos;shish
-        </Link>
-      </Button>
+      <div className="h-1" />
 
       {/* Jami pul */}
       <section className="mb-3 rounded-xl border bg-card p-4">
@@ -106,7 +117,7 @@ export default async function DashboardPage() {
         <dl className="mt-3 space-y-1.5 text-sm">
           <Row label="So'm hamyonlar" value={formatMoney(s.uzs_balance, "UZS")} />
           {usdBalance !== 0 && <Row label="Dollar hamyonlar" value={formatMoney(usdBalance, "USD")} />}
-          <Row label="Majburiyatlar" value={formatMoney(s.obligations_uzs, "UZS")} hint="3-bosqichda" />
+          <Row label="Majburiyatlar" value={`−${formatMoney(s.obligations_uzs, "UZS")}`} />
         </dl>
         {s.usd_rate !== null && (
           <p className={cn("mt-3 text-xs", rateStale ? "text-warning-foreground" : "text-muted-foreground")}>
@@ -140,10 +151,43 @@ export default async function DashboardPage() {
         </dl>
       </section>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Placeholder title="Faol majburiyatlar" stage="3-bosqichda" />
-        <Placeholder title="Maqsadlar" stage="4-bosqichda" />
-      </div>
+      {/* Faol majburiyatlar */}
+      <section className="mb-3 rounded-xl border bg-card p-4">
+        <Link href="/projects" className="flex items-baseline justify-between">
+          <p className="text-sm text-muted-foreground">Faol majburiyatlar</p>
+          <p className="flex items-center gap-1 font-semibold tabular-nums">
+            {formatMoney(s.obligations_uzs, "UZS")}
+            <ChevronRight className="size-4 text-muted-foreground" />
+          </p>
+        </Link>
+        {topProjects.length === 0 ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Olingan avanslar bo&apos;yicha bajarilmagan ish yo&apos;q.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-2 border-t pt-3 text-sm">
+            {topProjects.map((p) => (
+              <li key={p.id}>
+                <Link href={`/projects/${p.id}`} prefetch={false} className="flex items-baseline justify-between gap-3">
+                  <span className="min-w-0 truncate">
+                    <span className="text-muted-foreground">{p.client_name} · </span>
+                    {p.name}
+                    <span
+                      className={cn("ml-1 text-xs", p.overdue ? "text-destructive" : "text-muted-foreground")}
+                      title={p.overdue ? "Muddati o'tgan" : undefined}
+                    >
+                      {formatPercent(p.progress)}
+                    </span>
+                  </span>
+                  <span className="shrink-0 tabular-nums">{formatMoney(p.obligation_uzs, "UZS")}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <Placeholder title="Maqsadlar" stage="4-bosqichda" />
     </>
   )
 }

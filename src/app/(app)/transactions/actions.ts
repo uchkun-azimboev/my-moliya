@@ -13,6 +13,7 @@ const transactionSchema = z.object({
   category_id: z.uuid("Kategoriyani tanlang"),
   wallet_id: z.uuid("Hamyonni tanlang"),
   rate_to_uzs: z.preprocess((v) => (v === "" ? undefined : v), rateSchema.optional()),
+  project_id: z.preprocess((v) => (v === "" ? null : v), z.uuid().nullable().optional()),
   note: z.string().trim().max(200).optional(),
 })
 
@@ -41,6 +42,7 @@ async function buildRow(formData: FormData) {
       rate_to_uzs: wallet.currency === "UZS" ? "1" : t.rate_to_uzs!,
       wallet_id: t.wallet_id,
       category_id: t.category_id,
+      project_id: t.project_id ?? null,
       note: t.note || null,
     },
   } as const

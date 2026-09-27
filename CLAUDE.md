@@ -48,6 +48,8 @@ Ilovaning asosiy savoli: "Keyingi 30–90 kunda pulim yetadimi, majburiyatlarim 
 
 - Mavzu: Yorug' / Qorong'i / Tizim (standart — Tizim), `next-themes` orqali, tanlov qurilmada (localStorage) saqlanadi. Ranglar faqat `globals.css` dagi tokenlar orqali (`bg-card`, `text-muted-foreground`, `text-income`, `--chart-*` va h.k.) — qattiq kodlangan rang ishlatilmaydi, har bir yangi sahifa ikkala rejimda tekshiriladi.
 - PWA `theme-color` tanlangan mavzuga ergashadi (`src/components/theme.tsx`).
+- Pastki menyu (5 tadan oshmaydi): Asosiy · Tranzaksiyalar · Loyihalar · Hamyonlar · Sozlamalar. Kategoriyalar — Sozlamalar ichida, Mijozlar — Loyihalar ichida.
+- Asosiy sahifalarda doim dumaloq "+" tugma — `/transactions/new` (tezkor kiritish) ni ochadi.
 
 ## Modullar
 
@@ -65,8 +67,9 @@ Ilovaning asosiy savoli: "Keyingi 30–90 kunda pulim yetadimi, majburiyatlarim 
 - `categories`: id, name, kind (income/expense), group (fixed/work/variable), icon, archived
 - `transactions`: id, date, amount, currency, rate_to_uzs, wallet_id, category_id, project_id (null), goal_id (null), note
 - `transfers`: id, date, from_wallet_id, to_wallet_id, from_amount, to_amount, rate, note
-- `clients`: id, name, note
-- `projects`: id, client_id, name, total_amount, currency, start_date, end_date, progress_percent (0–100), status (obligation/partial/done), is_retainer
+- `clients`: id, name, note, archived
+- `projects`: id, client_id, name, total_amount, currency, start_date, end_date, progress_mode (percent/units), progress_percent (0–100), units_total, units_done, is_retainer, previous_project_id (retainer oldingi davri), closed (qo'lda yopilgan), note
+  - **status saqlanmaydi** — `project_summary` view'da hisoblanadi: `closed` yoki bajarilish 100% → `done`, 0% → `obligation`, qolgani → `partial`
 - `goals`: id, name, kind (saving/debt), target_amount, currency, start_amount, deadline, priority, status
 - `budgets`: id, month (date, oyning 1-kuni), category_id, planned_amount
 - `exchange_rates`: date, usd_to_uzs (CBU'dan)
@@ -79,15 +82,19 @@ Barcha jadvallarda `user_id`, `created_at` bor.
 **Hamyon balansi**
 `opening_balance + daromadlar − xarajatlar + kiruvchi o'tkazmalar − chiquvchi o'tkazmalar`
 
-**Loyiha avansi (majburiyat)**
-- `olingan_to'lov` = loyihaga bog'langan daromad tranzaksiyalari yig'indisi
+**Loyiha avansi (majburiyat)** — `project_summary` view
+- `olingan_to'lov` = loyihaga bog'langan daromadlar − loyihaga bog'langan xarajatlar (qaytarilgan pul), har biri o'z `rate_to_uzs` kursida so'mga o'giriladi
+- `bajarilish` = progress_percent / 100 yoki units_done / units_total (aniq nisbat; ekranda 1 xona kasr, masalan 41,7%)
 - `ishlab_topilgan = olingan_to'lov × progress_percent / 100`
 - `majburiyat = olingan_to'lov − ishlab_topilgan`
-- status `done` bo'lsa majburiyat = 0
+- status `done` bo'lsa majburiyat = 0 (ishlab topilgan = olingan)
+- `kutilayotgan_to'lov = max(umumiy_summa_so'mda − olingan_to'lov, 0)`; USD loyiha summasi oxirgi CBU kursida so'mga o'giriladi
+- `muddati_o'tgan` = tugallanmagan va end_date bugundan oldin
+- Retainer "Keyingi oyni ochish": yangi davr = oldingi tugashdan keyingi kun … +1 oy − 1 kun, bajarilish 0 dan; "Oldingi davrni yopish" standart yoqilgan
 
 **Jami pul va xavfsiz pul**
 - `jami_pul` = barcha hamyonlar balansi (UZS ga o'girilgan)
-- `xavfsiz_pul = jami_pul − barcha faol loyihalar majburiyati`
+- `xavfsiz_pul = jami_pul − barcha faol loyihalar majburiyati` (`dashboard_summary()`, 3-bosqichdan haqiqiy)
 
 **Kunlik limit**
 `(xavfsiz_pul − oy oxirigacha rejalashtirilgan majburiy to'lovlar − shu oyning maqsad ajratmalari) ÷ oyning qolgan kunlari` (0 dan kichik bo'lsa 0 va ogohlantirish)

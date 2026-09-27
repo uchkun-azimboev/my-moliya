@@ -1,13 +1,12 @@
 import Link from "next/link"
+import { Plus } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { NativeSelect } from "@/components/ui/native-select"
-import { formatDate, formatMoney, formatMonth, currentMonth, monthRange, recentMonths, today } from "@/lib/format"
-import { getUsdRate } from "@/lib/cbu"
+import { formatDate, formatMoney, formatMonth, currentMonth, monthRange, recentMonths } from "@/lib/format"
 import { createClient, requireUser } from "@/lib/supabase/server"
 import type { Category, CategoryKind, Currency, WalletBalance } from "@/lib/types"
 import { cn } from "@/lib/utils"
-import { TransactionForm } from "./transaction-form"
 
 type Row = {
   id: string
@@ -18,6 +17,7 @@ type Row = {
   note: string | null
   wallet: { name: string } | null
   category: { name: string; kind: CategoryKind; icon: string | null } | null
+  project: { name: string } | null
 }
 
 export default async function TransactionsPage({ searchParams }: PageProps<"/transactions">) {
@@ -34,7 +34,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
   let query = supabase
     .from("transactions")
     .select(
-      "id, date, amount, currency, rate_to_uzs, note, wallet:wallets!transactions_wallet_fkey(name), category:categories!transactions_category_fkey!inner(name, kind, icon)"
+      "id, date, amount, currency, rate_to_uzs, note, wallet:wallets!transactions_wallet_fkey(name), category:categories!transactions_category_fkey!inner(name, kind, icon), project:projects!transactions_project_fkey(name)"
     )
     .gte("date", from)
     .lt("date", to)
@@ -45,7 +45,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
   if (categoryFilter) query = query.eq("category_id", categoryFilter)
   if (kindFilter === "income" || kindFilter === "expense") query = query.eq("category.kind", kindFilter)
 
-  const [, { data: txData }, { data: walletData }, { data: categoryData }, { data: lastTx }, cbuRate] =
+  const [, { data: txData }, { data: walletData }, { data: categoryData }] =
     await Promise.all([
       requireUser(),
       query,
@@ -54,8 +54,6 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
         .select("id, name, currency, kind, archived, opening_balance, balance")
         .order("created_at"),
       supabase.from("categories").select("id, name, kind, group_type, icon, archived").order("name"),
-      supabase.from("transactions").select("wallet_id").order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      getUsdRate(supabase, today()),
     ])
 
   const rows = (txData ?? []) as unknown as Row[]
@@ -80,17 +78,17 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
 
   return (
     <>
-      <PageHeader title="Tranzaksiyalar" />
+      <PageHeader
+        title="Tranzaksiyalar"
+        action={
+          <Button asChild size="sm" variant="outline">
+            <Link href="/transactions/new">
+              <Plus /> Qo&apos;shish
+            </Link>
+          </Button>
+        }
+      />
 
-      <section className="mb-8 rounded-xl border bg-card p-4">
-        <TransactionForm
-          categories={categories.filter((c) => !c.archived)}
-          wallets={wallets.filter((w) => !w.archived)}
-          today={today()}
-          defaultWalletId={lastTx?.wallet_id}
-          cbuRate={cbuRate}
-        />
-      </section>
 
       <form className="mb-4 space-y-2" action="/transactions">
         <NativeSelect name="month" defaultValue={month} aria-label="Oy">
@@ -171,6 +169,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                           <span className="block truncate text-sm font-medium">{r.category?.name}</span>
                           <span className="block truncate text-xs text-muted-foreground">
                             {r.wallet?.name}
+                            {r.project && ` · ${r.project.name}`}
                             {r.note && ` · ${r.note}`}
                           </span>
                         </span>

@@ -2,8 +2,8 @@ import { ListSkeleton, PageSkeleton } from "@/components/skeletons"
 
 export default function Loading() {
   return (
-    <PageSkeleton title="Kategoriyalar" back="/settings">
-      <ListSkeleton rows={8} />
+    <PageSkeleton title="Mijozlar" back="/projects">
+      <ListSkeleton rows={4} />
     </PageSkeleton>
   )
 }
