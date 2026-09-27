@@ -7,7 +7,8 @@ export default async function NewGoalPage({ searchParams }: PageProps<"/goals/ne
   const [, sp, { data }] = await Promise.all([
     requireUser(),
     searchParams,
-    supabase.from("settings").select("monthly_fixed_expenses").maybeSingle(),
+    // majburiy oylik reja: joriy oy budjetidan, bo'lmasa sozlamadan (dashboard_summary shuni qaytaradi)
+    supabase.rpc("dashboard_summary").single<{ monthly_fixed_expenses: number | null }>(),
   ])
   const fixed = data?.monthly_fixed_expenses ? Number(data.monthly_fixed_expenses) : null
 

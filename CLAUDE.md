@@ -50,6 +50,8 @@ Ilovaning asosiy savoli: "Keyingi 30–90 kunda pulim yetadimi, majburiyatlarim 
 - PWA `theme-color` tanlangan mavzuga ergashadi (`src/components/theme.tsx`).
 - Pastki menyu (5 tadan oshmaydi): Asosiy · Tranzaksiyalar · Loyihalar · Maqsadlar · Hamyonlar. Sozlamalar — dashboard tepasidagi ⚙️, Kategoriyalar — Sozlamalar ichida, Mijozlar — Loyihalar ichida.
 - Asosiy sahifalarda doim dumaloq "+" tugma — `/transactions/new` (tezkor kiritish) ni ochadi.
+- Budjet — Tranzaksiyalar bo'limidagi tab (Ro'yxat · Budjet, `/budget?month=YYYY-MM`); dashboard "Bu oy" kartasida "Budjet →" havolasi.
+- PWA: `src/app/manifest.ts` (standalone), ikonkalar kod bilan chiziladi (`src/lib/app-icon.tsx`: `/icon`, `/apple-icon`, `/icons/192|512|maskable`), service worker — `src/app/sw.js/route.ts`, ro'yxatdan o'tkazish — `src/components/pwa.tsx`, offline sahifa — `/offline`. Bu yo'llar `src/proxy.ts` matcher'ida login'dan ozod.
 
 ## Modullar
 
@@ -73,9 +75,9 @@ Ilovaning asosiy savoli: "Keyingi 30–90 kunda pulim yetadimi, majburiyatlarim 
 - `goals`: id, name, kind (saving/debt), target_amount, currency, start_amount, deadline, priority (1 — eng muhim), monthly_plan (ixtiyoriy oylik rejadagi to'lov), closed, note
   - **status saqlanmaydi** — `goal_summary` view'da: `closed` → `closed`, qolgan = 0 → `done`, aks holda `active`
 - `goal_allocations`: id, goal_id, date, amount (maqsad valyutasida; musbat — ajratish, manfiy — bo'shatish), note — faqat jamg'arma maqsadiga (trigger)
-- `budgets`: id, month (date, oyning 1-kuni), category_id, planned_amount
+- `budgets`: id, month (date, oyning 1-kuni), category_id, planned_amount (so'mda) — faqat xarajat kategoriyalariga (trigger); bir oyda kategoriyaga bitta reja
 - `exchange_rates`: date, usd_to_uzs (CBU'dan)
-- `settings`: user_id (bitta qator), monthly_fixed_expenses — **vaqtinchalik**, 5-bosqichda budjet bilan almashtiriladi ("Favqulodda zaxira" shabloni ham shundan: × 3)
+- `settings`: user_id (bitta qator), monthly_fixed_expenses — **zaxira qiymat**: joriy oyda "fixed" budjeti bo'lmasa ishlatiladi (5a)
 
 Barcha jadvallarda `user_id`, `created_at` bor.
 
@@ -101,11 +103,20 @@ Barcha jadvallarda `user_id`, `created_at` bor.
 **Kunlik limit**
 `(xavfsiz_pul − oy oxirigacha rejalashtirilgan majburiy to'lovlar − shu oyning maqsad ajratmalari) ÷ oyning qolgan kunlari` (0 dan kichik bo'lsa 0 va ogohlantirish)
 
-- Hozircha (2-bosqichdan): `oy oxirigacha rejalashtirilgan majburiy to'lovlar = max(settings.monthly_fixed_expenses − shu oy "fixed" guruhda to'langan, 0)`. Sozlama kiritilmagan bo'lsa dashboard'da "Oylik majburiy xarajatlarni kiriting" eslatmasi chiqadi.
-- **5-bosqichda** `monthly_fixed_expenses` o'rniga budjetdagi (`budgets`) "fixed" kategoriyalar rejasi ishlatiladi va sozlama olib tashlanadi.
+- `oy oxirigacha rejalashtirilgan majburiy to'lovlar` (5a, `dashboard_summary()` v4):
+  - joriy oyda "fixed" guruh kategoriyalariga budjet bo'lsa — `Σ max(reja − fakt, 0)` **kategoriya bo'yicha** (bir kategoriyadagi ortiqcha to'lov boshqasining qoldig'ini kamaytirmaydi); `fixed_plan_source = 'budget'`
+  - bo'lmasa — `max(settings.monthly_fixed_expenses − shu oy "fixed" guruhda to'langan, 0)`; `'settings'`
+  - ikkalasi ham yo'q — 0 va dashboard'da "Oylik majburiy xarajatlarni kiriting" eslatmasi; `'none'`
+- "Favqulodda zaxira" shabloni: `× 3` shu ishlatilayotgan majburiy rejadan (budjet yoki sozlama)
 - Oyning qolgan kunlari bugunni ham o'z ichiga oladi (Toshkent vaqti).
 - `shu oyning maqsad ajratmalari` = faol maqsadlar bo'yicha `max(reja − shu oy ajratilgan/to'langan, 0)`, `reja = monthly_plan`, bo'lmasa `oylik_kerakli`, muddat ham bo'lmasa 0 (4-bosqichdan).
 - Bu oy xarajati qarz to'lovlarisiz (qarz maqsadiga bog'langan xarajatlar alohida — `debt_paid_month_uzs`).
+
+**Budjet** — `budget_report(oy)` SQL funksiyasi (5a)
+- `fakt` = shu oy kategoriya xarajatlari, har biri o'z kursida so'mga; qarz to'lovlari (qarz maqsadiga bog'langan) kirmaydi
+- `qolgan = max(reja − fakt, 0)`, `oshib_ketgan = max(fakt − reja, 0)`; qatorlar — rejasi yoki fakti bor xarajat kategoriyalari
+- "Oldingi oy rejasini nusxalash" faqat rejasi yo'q kategoriyalarni to'ldiradi (arxivlanganlar nusxalanmaydi)
+- Budjetdan oshgan kategoriyalar soni dashboard'da eslatma bo'lib chiqadi (`budget_over_count`)
 
 **Xavfsiz daromad (reja uchun)**
 Oxirgi 3–6 oydagi eng past oylik daromad.
@@ -146,7 +157,7 @@ Faqat joriy bosqich ustida ishla. Keyingi bosqichga egasi aytgandagina o't.
 
 ## Loyiha holati
 
-**Tugagan bosqichlar:** 1 (skelet, CRUD), 2 (dashboard, kunlik limit, CBU, mavzu, sozlamalar), 3 (mijozlar, loyihalar, avans, xavfsiz pul), 4 (maqsadlar, ajratmalar, qarz to'lovlari, taqsimot). Migratsiyalar: `0001`–`0019`.
+**Tugagan bosqichlar:** 1 (skelet, CRUD), 2 (dashboard, kunlik limit, CBU, mavzu, sozlamalar), 3 (mijozlar, loyihalar, avans, xavfsiz pul), 4 (maqsadlar, ajratmalar, qarz to'lovlari, taqsimot), 5a (budjet, PWA). Migratsiyalar: `0001`–`0022`.
 
 **Qabul qilingan qarorlar (keyingi sessiyalar uchun):**
 - Next.js 16: middleware fayli `src/proxy.ts`. Auth tekshiruvi `getClaims()`; Supabase loyihasi ES256 (ECC P-256) kalitda — JWT mahalliy tekshiriladi. Legacy HS256 kaliti "previous" holatda qoladi (anon kalit u bilan imzolangan) — revoke qilinmaydi.
@@ -158,10 +169,13 @@ Faqat joriy bosqich ustida ishla. Keyingi bosqichga egasi aytgandagina o't.
 - Tezkor kiritish — `/transactions/new` (asosiy sahifalardagi "+" tugma); tranzaksiyalar sahifasida faqat ro'yxat va filtr.
 - Loyiha statusi saqlanmaydi, faqat `closed`. Loyihaga bog'langan xarajat = qaytarilgan pul.
 - Maqsad statusi ham saqlanmaydi, faqat `closed`. Maqsad turi (jamg'arma/qarz) yaratilgandan keyin o'zgarmaydi. Ajratmani faqat ajratilgan qoldiqqacha bo'shatish mumkin.
-- `dashboard_summary()` qaytaradigan ustunlar o'zgarsa — migratsiyada `drop function` + `create` (0019 dagidek).
+- `dashboard_summary()` qaytaradigan ustunlar o'zgarsa — migratsiyada `drop function` + `create` (0019, 0022 dagidek).
+- Service worker **versiyalangan**: `sw.js` build vaqtida yaratiladi, versiya = `VERCEL_DEPLOYMENT_ID` (yoki commit / build vaqti). Yangi deploy → yangi SW → `activate` da eski `moliya-*` keshlar o'chadi → `clients.claim()` → sahifa bir marta o'zi qayta yuklanadi (input fokusda bo'lsa — ilova yashiringanda). Yangilanish ilova ochilganda va qayta ko'rinishga kelganda tekshiriladi.
+- SW faqat `/_next/static/*` va `/icons/*` ni keshlaydi; sahifalar va moliyaviy ma'lumotlar **keshlanmaydi**, internet bo'lmasa faqat `/offline` ko'rsatiladi.
+- Playwright'ning `setOffline()` service worker so'rovlariga ta'sir qilmaydi — offline'ni server to'xtatib sinash kerak.
 - Test muhiti: mahalliy Supabase CLI (Docker) + soxta CBU (sandbox'dan cbu.uz yopiq); shadcn registry ham yopiq bo'lishi mumkin — komponentlar GitHub'dan (`shadcn-ui/ui`, `apps/v4/registry/new-york-v4/ui`) qo'lda olinadi.
 
-**5-bosqich nimadan boshlanadi:** avval reja. Asosiy qismlar: `budgets` jadvali (oy + kategoriya + reja) va reja/fakt sahifasi; kunlik limitda `settings.monthly_fixed_expenses` o'rniga "fixed" kategoriyalar budjeti (sozlama va shablondagi × 3 ham budjetdan olinadi); Hisobotlar (Recharts: oyma-oy trend, kategoriyalar, mijoz ulushlari va 50% konsentratsiya ogohlantirishi, runway, xavfsiz daromad); 30/60/90 kunlik prognoz (kutilayotgan loyiha to'lovlari `project_summary.expected_uzs`, doimiy xarajatlar, maqsad/qarz rejalari `goal_summary.plan_amount`); PWA (manifest, ikonlar, service worker). Hisobotlar menyuga sig'maydi — joyini rejada kelishish kerak.
+**5b nimadan boshlanadi:** avval reja. Hisobotlar (Recharts, ranglar `--chart-*` tokenlari, ikkala mavzu): oyma-oy daromad/xarajat trendi, kategoriyalar ulushi, mijozlar ulushi va 50% konsentratsiya ogohlantirishi, runway (`likvid pul ÷ oxirgi 3 oy o'rtacha majburiy xarajat`), xavfsiz daromad (oxirgi 3–6 oydagi eng past oylik daromad). 30/60/90 kunlik prognoz: hozirgi xavfsiz pul + kutilayotgan loyiha to'lovlari (`project_summary.expected_uzs`, sanasi — `end_date`) − majburiy xarajatlar (budjet yoki sozlama, oylik) − maqsad/qarz rejalari (`goal_summary.plan_amount`). Hisobotlar menyuga sig'maydi — joyini rejada kelishish kerak (masalan dashboard'dan havola yoki boshqa bo'limdagi tab).
 
 ## Ish tartibi
 

@@ -36,6 +36,13 @@ Loyiha spetsifikatsiyasi: [CLAUDE.md](CLAUDE.md).
 - **Taqsimot tavsiyasi**: majburiy xarajatlar → maqsadlar ustuvorlik bo'yicha → erkin pul
 - **Dashboard**: xavfsiz pul jamg'armaga ajratilganni ayiradi, kunlik limit maqsadlar rejasini hisobga oladi, Maqsadlar kartasi; Sozlamalar — tepadagi ⚙️
 
+## 5a: nima bor
+
+- **Budjet** (Tranzaksiyalar → Budjet tabi): kategoriya bo'yicha oylik reja va fakt, qolgan, oshib ketgan (qizil), oy almashtirish, "Oldingi oy rejasini nusxalash"
+- Kunlik limit: "Majburiy doimiy" kategoriyalarga budjet qo'yilsa — sozlamadagi summa o'rniga budjet (kategoriya bo'yicha qolgan)
+- Dashboard: "N ta kategoriya budjetdan oshib ketdi" eslatmasi, "Budjet →" havolasi
+- **PWA**: bosh ekranga o'rnatish (to'liq ekran, ikonka), yuqori panel rangi mavzuga mos, internet bo'lmasa "Internet yo'q" sahifasi, yangi versiyaga avtomatik o'tish; Sozlamalar → "Ilovani o'rnatish"
+
 ## O'rnatish — qadamma-qadam
 
 ### 1. Supabase sozlamalari
@@ -65,6 +72,9 @@ Loyiha spetsifikatsiyasi: [CLAUDE.md](CLAUDE.md).
 17. `0017_transactions_goal_fk.sql` — 4-bosqich
 18. `0018_goal_summary.sql` — 4-bosqich
 19. `0019_dashboard_summary_v3.sql` — 4-bosqich
+20. `0020_budgets.sql` — 5a
+21. `0021_budget_report.sql` — 5a
+22. `0022_dashboard_summary_v4.sql` — 5a
 
 Har biridan keyin "Success. No rows returned" chiqishi kerak.
 
@@ -121,6 +131,21 @@ Brauzerda http://localhost:3000 ni oching.
 5. Qarz: "Kredit", 12 000 000, allaqachon to'langan 4 000 000, muddat 3 oy keyin → "To'lov qilish" → forma "Qarz to'lovi" va shu maqsad bilan ochiladi → 1 000 000. Asosiy'da "Bu oy → Xarajat" o'zgarmaydi, "Qarz to'lovlari" qatori chiqadi.
 6. Muddatga yetmaydigan maqsad qizil "Kech qolmoqda" va "oyiga yana X kerak" bilan ko'rinadi (X = oyiga kerak − oxirgi 3 oydagi o'rtacha).
 7. Maqsadlar sahifasidagi "Taqsimot tavsiyasi": xavfsiz pul → majburiy xarajatlar → maqsadlar ustuvorlik bo'yicha → erkin pul; kunlik limit = (xavfsiz pul − majburiy qolgani − maqsadlarga shu oy qolgani) ÷ qolgan kunlar.
+
+### 5a ni tekshirish
+1. **Tranzaksiyalar → Budjet**: "Majburiy doimiy" kategoriyalarga (Ijara, Kommunal...) reja qo'ying. Asosiy'da "Majburiy (budjet)" qatori chiqadi, kunlik limit endi budjetdagi qolgan summaga tayanadi.
+2. Biror kategoriyada rejadan ko'p xarajat qiling → qator qizil "X so'm oshib ketdi", Asosiy'da "1 ta kategoriya budjetdan oshib ketdi".
+3. Keyingi oyga o'ting (›) → "… rejasini nusxalash" → rejalar ko'chadi; qayta bossangiz mavjud rejalar o'zgarmaydi.
+4. Telefonda (Vercel manzili): iPhone — Safari → Ulashish → "Bosh ekranga qo'shish"; Android — Chrome menyusi → "Ilovani o'rnatish" (yoki Sozlamalar → "Ilovani o'rnatish"). Ikonkadan ochilganda brauzer panellari bo'lmaydi.
+5. Ilova ochiq holda internetni o'chirib, boshqa bo'limga o'ting → "Internet yo'q" sahifasi (raqamlar ko'rinmaydi). Internetni yoqib "Qayta urinish".
+
+### Ilova yangilanmasa nima qilish kerak
+Odatda yangi versiya o'zi o'rnatiladi: ilovani ochganingizda (yoki boshqa ilovadan qaytganingizda) yangilanish tekshiriladi va sahifa bir marta o'zi qayta yuklanadi.
+Agar o'zgarish ko'rinmasa:
+1. Ilovani to'liq yoping (so'nggi ilovalar ro'yxatidan surib chiqaring) va qayta oching — 1–2 marta.
+2. Hali ham eski bo'lsa: **Android** — Chrome → Sozlamalar → Sayt sozlamalari → Barcha saytlar → sayt → "Ma'lumotlarni tozalash"; **iPhone** — Sozlamalar → Safari → Qo'shimcha → Veb-sayt ma'lumotlari → saytni o'chiring. So'ng qayta kiring (login so'raladi).
+3. Oxirgi chora: ikonkani bosh ekrandan o'chirib, qayta o'rnating.
+Moliyaviy ma'lumotlar telefonda saqlanmaydi — tozalash hech narsani yo'qotmaydi.
 
 ## Kodni `main` ga birlashtirish (Pull Request)
 
