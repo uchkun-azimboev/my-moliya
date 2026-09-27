@@ -64,3 +64,29 @@ Brauzerda http://localhost:3000 ni oching.
 6. (Ixtiyoriy) **Delete branch** — branch'ni o'chirish.
 
 Vercel repo'ga ulangan bo'lsa, `main` ga birlashtirilgandan keyin sayt avtomatik yangilanadi. Vercel'da **Settings → Environment Variables** ga `.env.local` dagi ikki qiymatni qo'shishni unutmang.
+
+## Tezlik
+
+### JWT kalit turi (eng katta ta'sir)
+Ilova foydalanuvchini `getClaims()` bilan tekshiradi. Uning tezligi Supabase loyihangizdagi JWT kalit turiga bog'liq:
+
+- **ES256 / RS256 (asimmetrik kalit)** — JWT serverda mahalliy tekshiriladi, tarmoq so'rovi yo'q (ochiq kalit 10 daqiqa keshlanadi).
+- **HS256 (eski "Legacy JWT secret")** — har bir tekshiruvda Supabase Auth serveriga so'rov ketadi. Har bir sahifa o'tishiga 2 ta qo'shimcha tarmoq so'rovi qo'shiladi.
+
+Tekshirish va o'tkazish: Supabase → **Project Settings → JWT Keys**.
+1. "Legacy JWT Secret" hozirgi (current) kalit bo'lsa — loyiha HS256 da.
+2. **Migrate JWT secret** → so'ng yangi **ECC (P-256)** kalitni yarating va **Rotate keys** bilan uni asosiy qiling.
+3. Eski secret'ni **revoke qilmang** — `.env.local` dagi anon kaliti hali u bilan imzolangan.
+   Kod o'zgarishi kerak emas.
+
+### Vercel regioni
+Vercel funksiyalari Supabase bazasiga yaqin joyda ishlashi kerak. Supabase regionini **Project Settings → General** da ko'ring va Vercel'da **Settings → Functions → Function Region** ni shunga eng yaqin regionga qo'ying (masalan Supabase `eu-central-1` Frankfurt → Vercel `fra1`).
+
+### O'lchash
+Vercel'da **Settings → Environment Variables** ga `DEBUG_TIMING=1` qo'shing va qayta deploy qiling. **Logs** bo'limida har bir so'rov vaqti ko'rinadi:
+```
+[supabase] GET /rest/v1/wallet_balances 84ms
+[supabase] GET /auth/v1/user 150ms        ← HS256 bo'lsa shunday qatorlar chiqadi
+[auth] getClaims alg=ES256 2ms
+```
+O'lchab bo'lgach `DEBUG_TIMING` ni o'chirib qo'ying.

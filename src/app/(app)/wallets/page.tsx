@@ -3,16 +3,20 @@ import { ArrowLeftRight, Banknote, CreditCard, Plus } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { formatMoney } from "@/lib/format"
-import { requireUser } from "@/lib/supabase/server"
+import { createClient, requireUser } from "@/lib/supabase/server"
 import { WALLET_KIND_LABEL, type Currency, type WalletBalance } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 export default async function WalletsPage() {
-  const { supabase } = await requireUser()
-  const { data } = await supabase
-    .from("wallet_balances")
-    .select("id, name, currency, kind, archived, opening_balance, balance")
-    .order("created_at")
+  const supabase = await createClient()
+  // Auth tekshiruvi va ma'lumot so'rovi parallel (ma'lumotni RLS himoya qiladi)
+  const [, { data }] = await Promise.all([
+    requireUser(),
+    supabase
+      .from("wallet_balances")
+      .select("id, name, currency, kind, archived, opening_balance, balance")
+      .order("created_at"),
+  ])
   const wallets = (data ?? []) as WalletBalance[]
   const active = wallets.filter((w) => !w.archived)
   const archived = wallets.filter((w) => w.archived)
@@ -87,7 +91,11 @@ function WalletList({ wallets }: { wallets: WalletBalance[] }) {
         const balance = Number(w.balance)
         return (
           <li key={w.id}>
-            <Link href={`/wallets/${w.id}`} className="flex items-center gap-3 px-4 py-3 active:bg-accent">
+            <Link
+                href={`/wallets/${w.id}`}
+                // Ro'yxatdagi har bir qatorni oldindan yuklash yuzlab fon so'rovini keltiradi
+                prefetch={false}
+                className="flex items-center gap-3 px-4 py-3 active:bg-accent">
               <span className="flex size-9 items-center justify-center rounded-full bg-muted">
                 <Icon className="size-4" />
               </span>

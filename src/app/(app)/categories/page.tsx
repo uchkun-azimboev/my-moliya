@@ -2,16 +2,20 @@ import Link from "next/link"
 import { Plus } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
-import { requireUser } from "@/lib/supabase/server"
+import { createClient, requireUser } from "@/lib/supabase/server"
 import { CATEGORY_GROUP_LABEL, type Category, type CategoryKind } from "@/lib/types"
 import { seedDefaultCategories } from "./actions"
 
 export default async function CategoriesPage() {
-  const { supabase } = await requireUser()
-  const { data } = await supabase
-    .from("categories")
-    .select("id, name, kind, group_type, icon, archived")
-    .order("name")
+  const supabase = await createClient()
+  // Auth tekshiruvi va ma'lumot so'rovi parallel (ma'lumotni RLS himoya qiladi)
+  const [, { data }] = await Promise.all([
+    requireUser(),
+    supabase
+      .from("categories")
+      .select("id, name, kind, group_type, icon, archived")
+      .order("name"),
+  ])
   const categories = (data ?? []) as Category[]
   const active = categories.filter((c) => !c.archived)
   const archived = categories.filter((c) => c.archived)
@@ -70,7 +74,11 @@ function CategoryList({ items }: { items: Category[] }) {
     <ul className="divide-y overflow-hidden rounded-xl border bg-card">
       {items.map((c) => (
         <li key={c.id}>
-          <Link href={`/categories/${c.id}`} className="flex items-center gap-3 px-4 py-3 active:bg-accent">
+          <Link
+                href={`/categories/${c.id}`}
+                // Ro'yxatdagi har bir qatorni oldindan yuklash yuzlab fon so'rovini keltiradi
+                prefetch={false}
+                className="flex items-center gap-3 px-4 py-3 active:bg-accent">
             <span className="flex size-9 items-center justify-center rounded-full bg-muted text-lg">{c.icon ?? "•"}</span>
             <span className="flex-1 font-medium">{c.name}</span>
             {c.group_type && (

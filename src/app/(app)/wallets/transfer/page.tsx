@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/page-header"
 import { formatDate, formatMoney, today } from "@/lib/format"
-import { requireUser } from "@/lib/supabase/server"
+import { createClient, requireUser } from "@/lib/supabase/server"
 import type { Currency, WalletBalance } from "@/lib/types"
 import { DeleteTransferButton, TransferForm } from "./transfer-form"
 
@@ -16,8 +16,9 @@ type TransferRow = {
 }
 
 export default async function TransferPage() {
-  const { supabase } = await requireUser()
-  const [{ data: wallets }, { data: transfers }] = await Promise.all([
+  const supabase = await createClient()
+  const [, { data: wallets }, { data: transfers }] = await Promise.all([
+    requireUser(),
     supabase
       .from("wallet_balances")
       .select("id, name, currency, kind, archived, opening_balance, balance")

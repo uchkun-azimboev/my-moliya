@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { NativeSelect } from "@/components/ui/native-select"
 import { formatDate, formatMoney, formatMonth, currentMonth, monthRange, recentMonths, today } from "@/lib/format"
-import { requireUser } from "@/lib/supabase/server"
+import { createClient, requireUser } from "@/lib/supabase/server"
 import type { Category, CategoryKind, Currency, WalletBalance } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { TransactionForm } from "./transaction-form"
@@ -27,7 +27,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
   const categoryFilter = pick("category")
   const kindFilter = pick("kind") as CategoryKind | undefined
 
-  const { supabase } = await requireUser()
+  const supabase = await createClient()
   const { from, to } = monthRange(month)
 
   let query = supabase
@@ -44,8 +44,9 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
   if (categoryFilter) query = query.eq("category_id", categoryFilter)
   if (kindFilter === "income" || kindFilter === "expense") query = query.eq("category.kind", kindFilter)
 
-  const [{ data: txData }, { data: walletData }, { data: categoryData }, { data: lastTx }, { data: lastUsd }] =
+  const [, { data: txData }, { data: walletData }, { data: categoryData }, { data: lastTx }, { data: lastUsd }] =
     await Promise.all([
+      requireUser(),
       query,
       supabase
         .from("wallet_balances")
@@ -163,7 +164,11 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                   const income = r.category?.kind === "income"
                   return (
                     <li key={r.id}>
-                      <Link href={`/transactions/${r.id}`} className="flex items-center gap-3 px-4 py-3 active:bg-accent">
+                      <Link
+                href={`/transactions/${r.id}`}
+                // Ro'yxatdagi har bir qatorni oldindan yuklash yuzlab fon so'rovini keltiradi
+                prefetch={false}
+                className="flex items-center gap-3 px-4 py-3 active:bg-accent">
                         <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-lg">
                           {r.category?.icon ?? "•"}
                         </span>
