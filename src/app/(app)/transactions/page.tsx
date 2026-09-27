@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { NativeSelect } from "@/components/ui/native-select"
 import { formatDate, formatMoney, formatMonth, currentMonth, monthRange, recentMonths, today } from "@/lib/format"
+import { getUsdRate } from "@/lib/cbu"
 import { createClient, requireUser } from "@/lib/supabase/server"
 import type { Category, CategoryKind, Currency, WalletBalance } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -44,7 +45,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
   if (categoryFilter) query = query.eq("category_id", categoryFilter)
   if (kindFilter === "income" || kindFilter === "expense") query = query.eq("category.kind", kindFilter)
 
-  const [, { data: txData }, { data: walletData }, { data: categoryData }, { data: lastTx }, { data: lastUsd }] =
+  const [, { data: txData }, { data: walletData }, { data: categoryData }, { data: lastTx }, cbuRate] =
     await Promise.all([
       requireUser(),
       query,
@@ -54,13 +55,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
         .order("created_at"),
       supabase.from("categories").select("id, name, kind, group_type, icon, archived").order("name"),
       supabase.from("transactions").select("wallet_id").order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      supabase
-        .from("transactions")
-        .select("rate_to_uzs")
-        .eq("currency", "USD")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+      getUsdRate(supabase, today()),
     ])
 
   const rows = (txData ?? []) as unknown as Row[]
@@ -93,7 +88,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
           wallets={wallets.filter((w) => !w.archived)}
           today={today()}
           defaultWalletId={lastTx?.wallet_id}
-          lastUsdRate={lastUsd ? Number(lastUsd.rate_to_uzs) : undefined}
+          cbuRate={cbuRate}
         />
       </section>
 

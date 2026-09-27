@@ -6,10 +6,11 @@ import { AmountInput } from "@/components/amount-input"
 import { FormError } from "@/components/form-error"
 import { Button } from "@/components/ui/button"
 import { useFormAction } from "@/hooks/use-form-action"
+import { useCbuRate, type CbuRate } from "@/hooks/use-cbu-rate"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { formatMoney } from "@/lib/format"
-import { formatAmountInput } from "@/lib/money"
+import { formatDate, formatMoney } from "@/lib/format"
+import { formatAmountInput, normalizeAmount } from "@/lib/money"
 import type { ActionState } from "@/lib/action-state"
 import type { Category, CategoryKind, WalletBalance } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -31,12 +32,12 @@ type Props = {
   today: string
   /** Oxirgi ishlatilgan hamyon — yangi yozuv uchun standart */
   defaultWalletId?: string
-  /** Oxirgi kiritilgan dollar kursi — USD hamyon tanlanganda standart */
-  lastUsdRate?: number
+  /** Bugungi CBU kursi — USD hamyon tanlanganda standart */
+  cbuRate?: CbuRate
   transaction?: EditableTransaction
 }
 
-export function TransactionForm({ categories, wallets, today, defaultWalletId, lastUsdRate, transaction }: Props) {
+export function TransactionForm({ categories, wallets, today, defaultWalletId, cbuRate = null, transaction }: Props) {
   const initialCategory = categories.find((c) => c.id === transaction?.category_id)
   const [kind, setKind] = useState<CategoryKind>(initialCategory?.kind ?? "expense")
   const [amount, setAmount] = useState(transaction ? formatAmountInput(String(transaction.amount)) : "")
@@ -48,11 +49,18 @@ export function TransactionForm({ categories, wallets, today, defaultWalletId, l
   const [rate, setRate] = useState(
     transaction && transaction.rate_to_uzs !== 1
       ? formatAmountInput(String(transaction.rate_to_uzs), 4)
-      : lastUsdRate
-        ? formatAmountInput(String(lastUsdRate), 4)
+      : cbuRate
+        ? formatAmountInput(String(cbuRate.rate), 4)
         : ""
   )
   const [date, setDate] = useState(transaction?.date ?? today)
+  const cbu = useCbuRate(transaction ? null : cbuRate)
+
+  // Sana o'zgarsa yoki USD hamyon tanlansa — shu sananing CBU kursi yoziladi (qo'lda o'zgartirish mumkin)
+  async function refreshRate(forDate: string) {
+    const result = await cbu.load(forDate)
+    if (result) setRate(formatAmountInput(String(result.rate), 4))
+  }
   const [note, setNote] = useState(transaction?.note ?? "")
 
   const [state, action, pending] = useFormAction(async (prev: ActionState, fd: FormData) => {
@@ -147,7 +155,15 @@ export function TransactionForm({ categories, wallets, today, defaultWalletId, l
         <Label>Hamyon</Label>
         <div className="flex flex-wrap gap-2">
           {wallets.map((w) => (
-            <Chip key={w.id} active={walletId === w.id} onClick={() => setWalletId(w.id)}>
+            <Chip
+              key={w.id}
+              active={walletId === w.id}
+              onClick={() => {
+                setWalletId(w.id)
+                if (w.currency === "USD" && wallet?.currency !== "USD" && (!cbu.info || cbu.info.date !== date))
+                  refreshRate(date)
+              }}
+            >
               {w.name}
               <span className="text-xs opacity-60">{formatMoney(w.balance, w.currency)}</span>
             </Chip>
@@ -159,14 +175,18 @@ export function TransactionForm({ categories, wallets, today, defaultWalletId, l
         <div className="space-y-2">
           <Label htmlFor="rate_to_uzs">Kurs: 1 USD = ? so&apos;m</Label>
           <AmountInput id="rate_to_uzs" name="rate_to_uzs" value={rate} onChange={setRate} maxDecimals={4} required placeholder="12 650" />
-          <p className="text-xs text-muted-foreground">2-bosqichda kurs CBU&apos;dan avtomatik olinadi.</p>
+          <RateHint rate={rate} cbu={cbu.info} loading={cbu.loading} />
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label htmlFor="date">Sana</Label>
-          <Input id="date" name="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="h-11 text-base" />
+          <Input id="date" name="date" type="date" value={date} onChange={(e) => {
+              setDate(e.target.value)
+              if (wallet?.currency === "USD" && e.target.value) refreshRate(e.target.value)
+            }}
+            required className="h-11 text-base" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="note">Izoh</Label>
@@ -181,6 +201,15 @@ export function TransactionForm({ categories, wallets, today, defaultWalletId, l
       </Button>
     </form>
   )
+}
+
+function RateHint({ rate, cbu, loading }: { rate: string; cbu: CbuRate; loading: boolean }) {
+  let text: string
+  if (loading) text = "CBU kursi olinmoqda..."
+  else if (!cbu) text = "CBU kursini olib bo'lmadi — qo'lda kiriting."
+  else if (Number(normalizeAmount(rate)) !== cbu.rate) text = `Qo'lda o'zgartirilgan · CBU: ${formatMoney(cbu.rate, "UZS")}`
+  else text = `CBU kursi, ${formatDate(cbu.date)}${cbu.stale ? " (shu kungi kurs olinmadi)" : ""}`
+  return <p className="text-xs text-muted-foreground">{text}</p>
 }
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {

@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/page-header"
 import { formatDate, formatMoney, today } from "@/lib/format"
+import { getUsdRate } from "@/lib/cbu"
 import { createClient, requireUser } from "@/lib/supabase/server"
 import type { Currency, WalletBalance } from "@/lib/types"
 import { DeleteTransferButton, TransferForm } from "./transfer-form"
@@ -17,7 +18,7 @@ type TransferRow = {
 
 export default async function TransferPage() {
   const supabase = await createClient()
-  const [, { data: wallets }, { data: transfers }] = await Promise.all([
+  const [, { data: wallets }, { data: transfers }, cbuRate] = await Promise.all([
     requireUser(),
     supabase
       .from("wallet_balances")
@@ -32,6 +33,7 @@ export default async function TransferPage() {
       .order("date", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(30),
+    getUsdRate(supabase, today()),
   ])
 
   const rows = (transfers ?? []) as unknown as TransferRow[]
@@ -39,7 +41,7 @@ export default async function TransferPage() {
   return (
     <>
       <PageHeader title="O'tkazma" back="/wallets" />
-      <TransferForm wallets={(wallets ?? []) as WalletBalance[]} today={today()} />
+      <TransferForm wallets={(wallets ?? []) as WalletBalance[]} today={today()} cbuRate={cbuRate} />
 
       <h2 className="mt-8 mb-3 text-sm font-medium text-muted-foreground">Oxirgi o&apos;tkazmalar</h2>
       {rows.length === 0 ? (
