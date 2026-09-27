@@ -48,7 +48,7 @@ Ilovaning asosiy savoli: "Keyingi 30–90 kunda pulim yetadimi, majburiyatlarim 
 
 - Mavzu: Yorug' / Qorong'i / Tizim (standart — Tizim), `next-themes` orqali, tanlov qurilmada (localStorage) saqlanadi. Ranglar faqat `globals.css` dagi tokenlar orqali (`bg-card`, `text-muted-foreground`, `text-income`, `--chart-*` va h.k.) — qattiq kodlangan rang ishlatilmaydi, har bir yangi sahifa ikkala rejimda tekshiriladi.
 - PWA `theme-color` tanlangan mavzuga ergashadi (`src/components/theme.tsx`).
-- Pastki menyu (5 tadan oshmaydi): Asosiy · Tranzaksiyalar · Loyihalar · Hamyonlar · Sozlamalar. Kategoriyalar — Sozlamalar ichida, Mijozlar — Loyihalar ichida.
+- Pastki menyu (5 tadan oshmaydi): Asosiy · Tranzaksiyalar · Loyihalar · Maqsadlar · Hamyonlar. Sozlamalar — dashboard tepasidagi ⚙️, Kategoriyalar — Sozlamalar ichida, Mijozlar — Loyihalar ichida.
 - Asosiy sahifalarda doim dumaloq "+" tugma — `/transactions/new` (tezkor kiritish) ni ochadi.
 
 ## Modullar
@@ -70,10 +70,12 @@ Ilovaning asosiy savoli: "Keyingi 30–90 kunda pulim yetadimi, majburiyatlarim 
 - `clients`: id, name, note, archived
 - `projects`: id, client_id, name, total_amount, currency, start_date, end_date, progress_mode (percent/units), progress_percent (0–100), units_total, units_done, is_retainer, previous_project_id (retainer oldingi davri), closed (qo'lda yopilgan), note
   - **status saqlanmaydi** — `project_summary` view'da hisoblanadi: `closed` yoki bajarilish 100% → `done`, 0% → `obligation`, qolgani → `partial`
-- `goals`: id, name, kind (saving/debt), target_amount, currency, start_amount, deadline, priority, status
+- `goals`: id, name, kind (saving/debt), target_amount, currency, start_amount, deadline, priority (1 — eng muhim), monthly_plan (ixtiyoriy oylik rejadagi to'lov), closed, note
+  - **status saqlanmaydi** — `goal_summary` view'da: `closed` → `closed`, qolgan = 0 → `done`, aks holda `active`
+- `goal_allocations`: id, goal_id, date, amount (maqsad valyutasida; musbat — ajratish, manfiy — bo'shatish), note — faqat jamg'arma maqsadiga (trigger)
 - `budgets`: id, month (date, oyning 1-kuni), category_id, planned_amount
 - `exchange_rates`: date, usd_to_uzs (CBU'dan)
-- `settings`: user_id (bitta qator), monthly_fixed_expenses — **vaqtinchalik**, 5-bosqichda budjet bilan almashtiriladi
+- `settings`: user_id (bitta qator), monthly_fixed_expenses — **vaqtinchalik**, 5-bosqichda budjet bilan almashtiriladi ("Favqulodda zaxira" shabloni ham shundan: × 3)
 
 Barcha jadvallarda `user_id`, `created_at` bor.
 
@@ -94,7 +96,7 @@ Barcha jadvallarda `user_id`, `created_at` bor.
 
 **Jami pul va xavfsiz pul**
 - `jami_pul` = barcha hamyonlar balansi (UZS ga o'girilgan)
-- `xavfsiz_pul = jami_pul − barcha faol loyihalar majburiyati` (`dashboard_summary()`, 3-bosqichdan haqiqiy)
+- `xavfsiz_pul = jami_pul − barcha faol loyihalar majburiyati − jamg'armaga ajratilgan qoldiq` (`dashboard_summary()`; ajratilgan qoldiq yopilgan maqsadlarda ham ayriladi — pul bo'shatilmaguncha band)
 
 **Kunlik limit**
 `(xavfsiz_pul − oy oxirigacha rejalashtirilgan majburiy to'lovlar − shu oyning maqsad ajratmalari) ÷ oyning qolgan kunlari` (0 dan kichik bo'lsa 0 va ogohlantirish)
@@ -102,23 +104,26 @@ Barcha jadvallarda `user_id`, `created_at` bor.
 - Hozircha (2-bosqichdan): `oy oxirigacha rejalashtirilgan majburiy to'lovlar = max(settings.monthly_fixed_expenses − shu oy "fixed" guruhda to'langan, 0)`. Sozlama kiritilmagan bo'lsa dashboard'da "Oylik majburiy xarajatlarni kiriting" eslatmasi chiqadi.
 - **5-bosqichda** `monthly_fixed_expenses` o'rniga budjetdagi (`budgets`) "fixed" kategoriyalar rejasi ishlatiladi va sozlama olib tashlanadi.
 - Oyning qolgan kunlari bugunni ham o'z ichiga oladi (Toshkent vaqti).
+- `shu oyning maqsad ajratmalari` = faol maqsadlar bo'yicha `max(reja − shu oy ajratilgan/to'langan, 0)`, `reja = monthly_plan`, bo'lmasa `oylik_kerakli`, muddat ham bo'lmasa 0 (4-bosqichdan).
+- Bu oy xarajati qarz to'lovlarisiz (qarz maqsadiga bog'langan xarajatlar alohida — `debt_paid_month_uzs`).
 
 **Xavfsiz daromad (reja uchun)**
 Oxirgi 3–6 oydagi eng past oylik daromad.
 
-**Maqsadlar**
-- saving: `yig'ilgan` = goal_id ga bog'langan ajratmalar yig'indisi
-- debt: `qolgan = target_amount − to'langan`
+**Maqsadlar** — `goal_summary` view (4-bosqich)
+- Ajratma **virtual**: pul hamyonda qoladi. Jamg'arma — `goal_allocations`; qarz to'lovi — `goal_id` bog'langan xarajat ("Qarz to'lovi" kategoriyasi; qarz maqsadi yaratilganda bo'lmasa qo'shiladi). Maqsadga faqat xarajat bog'lanadi
+- saving: `yig'ilgan = start_amount + ajratmalar` (progress); `ajratilgan_qoldiq = max(ajratmalar − maqsadga bog'langan xarajatlar, 0)` — maqsaddan ishlatilgan pul ajratmani o'z-o'zidan bo'shatadi, progress kamaymaydi; qo'lda "Bo'shatish" (manfiy ajratma) progressni ham kamaytiradi
+- `start_amount` — ilova hamyonlaridan tashqaridagi pul: progressga kiradi, xavfsiz puldan ayrilmaydi
+- debt: `to'langan = start_amount + bog'langan xarajatlar`; `qolgan = target_amount − to'langan`
+- Tranzaksiya valyutasi maqsad valyutasiga 0014 dagi qoida bilan o'giriladi; `*_uzs` — bugungi CBU kursida
+- `muddatgacha qolgan oylar` = muddat oyigacha, joriy oy ham (kamida 1)
 - `oylik_kerakli = qolgan ÷ muddatgacha qolgan oylar`
 - `progress = bajarilgan ÷ target × 100`
 - `real_muddat = qolgan ÷ oxirgi 3 oydagi o'rtacha oylik ajratma`
-- real_muddat deadline'dan kech bo'lsa — qizil holat va "oyiga yana X kerak" xabari
+- real_muddat deadline'dan kech bo'lsa (yoki 3 oyda hissa yo'q) — qizil holat va "oyiga yana X kerak" xabari, `X = oylik_kerakli − o'rtacha`
 
-**Pul taqsimoti tartibi (tavsiya ko'rinishida)**
-1. Majburiy doimiy xarajatlar
-2. Maqsadlar — `priority` bo'yicha (qarz odatda 1-o'rinda)
-3. Zaxira (sozlanadigan foiz, masalan 10%)
-4. Qolgani — erkin pul
+**Pul taqsimoti tartibi (tavsiya ko'rinishida, Maqsadlar sahifasida)**
+Xavfsiz puldan: 1. Majburiy xarajatlarning oy oxirigacha qolgani → 2. Maqsadlar `priority` bo'yicha, har biriga shu oy rejada qolgani → 3. Qolgani — erkin pul. Zaxira foizi yo'q — zaxira oddiy jamg'arma maqsadi ("Favqulodda zaxira" shabloni)
 
 **Runway**
 `likvid pul ÷ oxirgi 3 oydagi o'rtacha oylik majburiy xarajat`
@@ -141,7 +146,7 @@ Faqat joriy bosqich ustida ishla. Keyingi bosqichga egasi aytgandagina o't.
 
 ## Loyiha holati
 
-**Tugagan bosqichlar:** 1 (skelet, CRUD), 2 (dashboard, kunlik limit, CBU, mavzu, sozlamalar), 3 (mijozlar, loyihalar, avans, xavfsiz pul). Migratsiyalar: `0001`–`0014`.
+**Tugagan bosqichlar:** 1 (skelet, CRUD), 2 (dashboard, kunlik limit, CBU, mavzu, sozlamalar), 3 (mijozlar, loyihalar, avans, xavfsiz pul), 4 (maqsadlar, ajratmalar, qarz to'lovlari, taqsimot). Migratsiyalar: `0001`–`0019`.
 
 **Qabul qilingan qarorlar (keyingi sessiyalar uchun):**
 - Next.js 16: middleware fayli `src/proxy.ts`. Auth tekshiruvi `getClaims()`; Supabase loyihasi ES256 (ECC P-256) kalitda — JWT mahalliy tekshiriladi. Legacy HS256 kaliti "previous" holatda qoladi (anon kalit u bilan imzolangan) — revoke qilinmaydi.
@@ -152,9 +157,11 @@ Faqat joriy bosqich ustida ishla. Keyingi bosqichga egasi aytgandagina o't.
 - CBU kursi `exchange_rates` da kuniga bir marta keshlanadi (`src/lib/cbu.ts`); CBU javob bermasa oxirgi saqlangan kurs + "olinmadi" belgisi. `CBU_API_URL` — faqat test uchun.
 - Tezkor kiritish — `/transactions/new` (asosiy sahifalardagi "+" tugma); tranzaksiyalar sahifasida faqat ro'yxat va filtr.
 - Loyiha statusi saqlanmaydi, faqat `closed`. Loyihaga bog'langan xarajat = qaytarilgan pul.
+- Maqsad statusi ham saqlanmaydi, faqat `closed`. Maqsad turi (jamg'arma/qarz) yaratilgandan keyin o'zgarmaydi. Ajratmani faqat ajratilgan qoldiqqacha bo'shatish mumkin.
+- `dashboard_summary()` qaytaradigan ustunlar o'zgarsa — migratsiyada `drop function` + `create` (0019 dagidek).
 - Test muhiti: mahalliy Supabase CLI (Docker) + soxta CBU (sandbox'dan cbu.uz yopiq); shadcn registry ham yopiq bo'lishi mumkin — komponentlar GitHub'dan (`shadcn-ui/ui`, `apps/v4/registry/new-york-v4/ui`) qo'lda olinadi.
 
-**4-bosqich nimadan boshlanadi:** avval reja va bitta asosiy qaror — maqsadga ajratma qanday yoziladi (masalan, `goal_id` bog'langan tranzaksiya "Jamg'arma" xarajat kategoriyasi bilan, yoki alohida jamg'arma hamyoniga o'tkazma). Keyin: `0015_goals.sql` (goals + `transactions.goal_id` FK), `goal_summary` view (yig'ilgan/to'langan, qolgan, oylik kerakli, progress, real muddat, kechikish), `dashboard_summary()` da shu oyning maqsad ajratmalari (hozir 0), Maqsadlar sahifasi va dashboard kartasi, pul taqsimoti tavsiyasi (majburiy → maqsadlar priority bo'yicha → zaxira % → erkin pul).
+**5-bosqich nimadan boshlanadi:** avval reja. Asosiy qismlar: `budgets` jadvali (oy + kategoriya + reja) va reja/fakt sahifasi; kunlik limitda `settings.monthly_fixed_expenses` o'rniga "fixed" kategoriyalar budjeti (sozlama va shablondagi × 3 ham budjetdan olinadi); Hisobotlar (Recharts: oyma-oy trend, kategoriyalar, mijoz ulushlari va 50% konsentratsiya ogohlantirishi, runway, xavfsiz daromad); 30/60/90 kunlik prognoz (kutilayotgan loyiha to'lovlari `project_summary.expected_uzs`, doimiy xarajatlar, maqsad/qarz rejalari `goal_summary.plan_amount`); PWA (manifest, ikonlar, service worker). Hisobotlar menyuga sig'maydi — joyini rejada kelishish kerak.
 
 ## Ish tartibi
 

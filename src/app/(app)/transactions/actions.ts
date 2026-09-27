@@ -14,6 +14,7 @@ const transactionSchema = z.object({
   wallet_id: z.uuid("Hamyonni tanlang"),
   rate_to_uzs: z.preprocess((v) => (v === "" ? undefined : v), rateSchema.optional()),
   project_id: z.preprocess((v) => (v === "" ? null : v), z.uuid().nullable().optional()),
+  goal_id: z.preprocess((v) => (v === "" ? null : v), z.uuid().nullable().optional()),
   note: z.string().trim().max(200).optional(),
 })
 
@@ -23,12 +24,14 @@ async function buildRow(formData: FormData) {
   const t = parsed.data
 
   const { supabase } = await requireUser()
-  const { data: wallet } = await supabase
-    .from("wallets")
-    .select("currency")
-    .eq("id", t.wallet_id)
-    .maybeSingle()
+  const [{ data: wallet }, { data: category }] = await Promise.all([
+    supabase.from("wallets").select("currency").eq("id", t.wallet_id).maybeSingle(),
+    supabase.from("categories").select("kind").eq("id", t.category_id).maybeSingle(),
+  ])
   if (!wallet) return { error: "Hamyon topilmadi" } as const
+  if (!category) return { error: "Kategoriya topilmadi" } as const
+  // Maqsadga faqat xarajat bog'lanadi (qarz to'lovi yoki jamg'armadan ishlatilgan pul)
+  if (t.goal_id && category.kind !== "expense") return { error: "Maqsadga faqat xarajat bog'lanadi" } as const
 
   // UZS da kurs doim 1 (bazadagi trigger ham shuni ta'minlaydi); USD da kurs majburiy
   if (wallet.currency === "USD" && !t.rate_to_uzs) return { error: "Dollar kursini kiriting" } as const
@@ -43,6 +46,7 @@ async function buildRow(formData: FormData) {
       wallet_id: t.wallet_id,
       category_id: t.category_id,
       project_id: t.project_id ?? null,
+      goal_id: t.goal_id ?? null,
       note: t.note || null,
     },
   } as const

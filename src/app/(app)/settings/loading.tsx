@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export default function Loading() {
   return (
-    <PageSkeleton title="Sozlamalar">
+    <PageSkeleton title="Sozlamalar" back="/">
       <Skeleton className="mb-8 h-12 rounded-xl" />
       <Skeleton className="mb-8 h-20 rounded-xl" />
       <FormSkeleton fields={1} />

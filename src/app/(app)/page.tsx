@@ -1,9 +1,11 @@
 import Link from "next/link"
-import { AlertTriangle, ChevronRight } from "lucide-react"
+import { AlertTriangle, ChevronRight, Settings } from "lucide-react"
 import { ensureUsdRate } from "@/lib/cbu"
 import { formatDate, formatMoney, formatPercent, today } from "@/lib/format"
 import { createClient, requireUser } from "@/lib/supabase/server"
+import { GOAL_SUMMARY_COLUMNS, type GoalSummary } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { GoalProgress } from "./goals/goal-card"
 
 type TopProject = {
   id: string
@@ -33,6 +35,8 @@ type Summary = {
   daily_limit_uzs: number
   limit_negative: boolean
   shortfall_uzs: number
+  goals_reserved_uzs: number
+  debt_paid_month_uzs: number
 }
 
 export default async function DashboardPage() {
@@ -41,7 +45,7 @@ export default async function DashboardPage() {
 
   // Auth, bugungi CBU kursi va hisob-kitob parallel. Kurs bugun birinchi marta olingan
   // bo'lsa (kuniga bir marta), raqamlar yangi kurs bilan qayta hisoblanadi.
-  const [, rate, first, { data: topData }] = await Promise.all([
+  const [, rate, first, { data: topData }, { data: goalData }] = await Promise.all([
     requireUser(),
     ensureUsdRate(supabase, today()),
     summaryQuery(),
@@ -52,8 +56,16 @@ export default async function DashboardPage() {
       .gt("obligation_uzs", 0)
       .order("obligation_uzs", { ascending: false })
       .limit(3),
+    supabase
+      .from("goal_summary")
+      .select(GOAL_SUMMARY_COLUMNS)
+      .eq("status", "active")
+      .order("priority")
+      .order("created_at")
+      .limit(3),
   ])
   const topProjects = (topData ?? []) as TopProject[]
+  const topGoals = (goalData ?? []) as unknown as GoalSummary[]
   const s = rate.fetched ? (await summaryQuery()).data : first.data
 
   if (!s) {
@@ -69,6 +81,9 @@ export default async function DashboardPage() {
     <>
       <header className="mb-4 flex min-h-10 items-center justify-between">
         <h1 className="text-xl font-semibold">Moliya</h1>
+        <Link href="/settings" aria-label="Sozlamalar" className="-mr-2 rounded-md p-2 hover:bg-accent">
+          <Settings className="size-5" />
+        </Link>
       </header>
 
       {/* Xavfsiz pul va kunlik limit */}
@@ -84,15 +99,15 @@ export default async function DashboardPage() {
           </p>
           <p className="mt-1 text-xs opacity-70">
             Oy oxirigacha {s.days_left} kun
-            {Number(s.fixed_remaining_uzs) > 0 &&
-              ` · majburiy to'lovlarga ${formatMoney(s.fixed_remaining_uzs, "UZS")} ajratilgan`}
+            {Number(s.fixed_remaining_uzs) > 0 && ` · majburiy to'lovlarga ${formatMoney(s.fixed_remaining_uzs, "UZS")}`}
+            {Number(s.goal_allocations_uzs) > 0 && ` · maqsadlarga ${formatMoney(s.goal_allocations_uzs, "UZS")}`}
           </p>
         </div>
       </section>
 
       {s.limit_negative && (
         <Notice>
-          Oy oxirigacha pul yetmaydi: majburiy to&apos;lovlar uchun yana{" "}
+          Oy oxirigacha pul yetmaydi: majburiy to&apos;lovlar va maqsadlar rejasi uchun yana{" "}
           <b className="tabular-nums">{formatMoney(s.shortfall_uzs, "UZS")}</b> kerak.
         </Notice>
       )}
@@ -117,7 +132,10 @@ export default async function DashboardPage() {
         <dl className="mt-3 space-y-1.5 text-sm">
           <Row label="So'm hamyonlar" value={formatMoney(s.uzs_balance, "UZS")} />
           {usdBalance !== 0 && <Row label="Dollar hamyonlar" value={formatMoney(usdBalance, "USD")} />}
-          <Row label="Majburiyatlar" value={`−${formatMoney(s.obligations_uzs, "UZS")}`} />
+          <Row label="Majburiyatlar" value={`${Number(s.obligations_uzs) > 0 ? "−" : ""}${formatMoney(s.obligations_uzs, "UZS")}`} />
+          {Number(s.goals_reserved_uzs) > 0 && (
+            <Row label="Jamg'armaga ajratilgan" value={`−${formatMoney(s.goals_reserved_uzs, "UZS")}`} />
+          )}
         </dl>
         {s.usd_rate !== null && (
           <p className={cn("mt-3 text-xs", rateStale ? "text-warning-foreground" : "text-muted-foreground")}>
@@ -142,6 +160,7 @@ export default async function DashboardPage() {
         </div>
         <dl className="mt-3 space-y-1.5 border-t pt-3 text-sm">
           <Row label="Sof natija" value={formatMoney(monthNet, "UZS")} />
+          {Number(s.debt_paid_month_uzs) > 0 && <Row label="Qarz to'lovlari" value={formatMoney(s.debt_paid_month_uzs, "UZS")} />}
           {s.monthly_fixed_expenses !== null && (
             <Row
               label="Majburiy to'langan"
@@ -187,7 +206,41 @@ export default async function DashboardPage() {
         )}
       </section>
 
-      <Placeholder title="Maqsadlar" stage="4-bosqichda" />
+      {/* Maqsadlar: ustuvorlik bo'yicha 3 ta */}
+      <section className="mb-3 rounded-xl border bg-card p-4">
+        <Link href="/goals" className="flex items-baseline justify-between">
+          <p className="text-sm text-muted-foreground">Maqsadlar</p>
+          <ChevronRight className="size-4 text-muted-foreground" />
+        </Link>
+        {topGoals.length === 0 ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Hali maqsad yo&apos;q.{" "}
+            <Link href="/goals/new?template=reserve" className="underline">
+              Favqulodda zaxiradan boshlang
+            </Link>
+            .
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-3 border-t pt-3">
+            {topGoals.map((g) => (
+              <li key={g.id}>
+                <Link href={`/goals/${g.id}`} prefetch={false} className="block">
+                  <div className="mb-1.5 flex items-baseline justify-between gap-3 text-sm">
+                    <span className="min-w-0 truncate">
+                      {g.name}
+                      {g.late && <span className="ml-1 text-xs text-destructive">kech qolmoqda</span>}
+                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {formatMoney(g.done_amount, g.currency)} / {formatMoney(g.target_amount, g.currency)}
+                    </span>
+                  </div>
+                  <GoalProgress goal={g} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </>
   )
 }
@@ -210,14 +263,5 @@ function Notice({ children }: { children: React.ReactNode }) {
       <AlertTriangle className="mt-0.5 size-4 shrink-0" />
       <span>{children}</span>
     </p>
-  )
-}
-
-function Placeholder({ title, stage }: { title: string; stage: string }) {
-  return (
-    <div className="rounded-xl border border-dashed p-4">
-      <p className="text-sm font-medium">{title}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{stage}</p>
-    </div>
   )
 }

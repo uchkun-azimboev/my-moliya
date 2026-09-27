@@ -16,7 +16,7 @@ export default async function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Sozlamalar" />
+      <PageHeader title="Sozlamalar" back="/" />
 
       <section className="mb-8">
         <Link href="/categories" className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3 active:bg-accent">

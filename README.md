@@ -27,6 +27,15 @@ Loyiha spetsifikatsiyasi: [CLAUDE.md](CLAUDE.md).
 - **Dashboard**: xavfsiz pul endi majburiyatlarni ayiradi, "Faol majburiyatlar" kartasi (jami + eng katta 3 ta)
 - Pastki menyu: Asosiy · Tranzaksiyalar · Loyihalar · Hamyonlar · Sozlamalar (Kategoriyalar — Sozlamalar ichida); asosiy sahifalarda dumaloq **"+"** tugma
 
+## 4-bosqich: nima bor
+
+- **Maqsadlar** (pastki menyuda): jamg'arma va qarz, ustuvorlik, muddat, ixtiyoriy oylik reja; progress, qolgan, oyiga kerak, real muddat, kech qolsa "oyiga yana X kerak"
+- **Jamg'arma**: "+ Ajratish" — pul hamyonda qoladi, xavfsiz puldan ayriladi; "Bo'shatish"; maqsaddan ishlatilgan pul (maqsadga bog'langan xarajat) ajratmani o'zi bo'shatadi
+- **Qarz**: "To'lov qilish" — "Qarz to'lovi" xarajati shu maqsadga bog'lanadi; oylik xarajatga kirmaydi, alohida ko'rsatiladi
+- **"Favqulodda zaxira" shabloni**: summa = oylik majburiy xarajat × 3
+- **Taqsimot tavsiyasi**: majburiy xarajatlar → maqsadlar ustuvorlik bo'yicha → erkin pul
+- **Dashboard**: xavfsiz pul jamg'armaga ajratilganni ayiradi, kunlik limit maqsadlar rejasini hisobga oladi, Maqsadlar kartasi; Sozlamalar — tepadagi ⚙️
+
 ## O'rnatish — qadamma-qadam
 
 ### 1. Supabase sozlamalari
@@ -51,6 +60,11 @@ Loyiha spetsifikatsiyasi: [CLAUDE.md](CLAUDE.md).
 12. `0012_project_summary.sql` — 3-bosqich
 13. `0013_dashboard_summary_v2.sql` — 3-bosqich
 14. `0014_project_expected_in_currency.sql` — kutilayotgan to'lov loyiha valyutasida
+15. `0015_goals.sql` — 4-bosqich
+16. `0016_goal_allocations.sql` — 4-bosqich
+17. `0017_transactions_goal_fk.sql` — 4-bosqich
+18. `0018_goal_summary.sql` — 4-bosqich
+19. `0019_dashboard_summary_v3.sql` — 4-bosqich
 
 Har biridan keyin "Success. No rows returned" chiqishi kerak.
 
@@ -98,6 +112,15 @@ Brauzerda http://localhost:3000 ni oching.
 7. Tugash sanasi o'tgan loyiha qizil "Muddati o'tgan" belgisi bilan ko'rinadi.
 8. **Asosiy**: xavfsiz pul = jami pul − barcha faol loyihalar majburiyati; "Faol majburiyatlar" kartasida jami va eng katta 3 ta loyiha.
 9. To'lovi bor loyihani o'chirishga urinib ko'ring → "yoping" degan xabar chiqadi.
+
+### 4-bosqichni tekshirish
+1. ⚙️ Sozlamalar → oylik majburiy xarajat (masalan 2 000 000). **Maqsadlar → Yangi** → "Favqulodda zaxira" shabloni: summa 6 000 000 bo'lib chiqadi → Saqlash.
+2. Jamg'arma: "To'y", 20 000 000, muddat 6–7 oy keyin. "+ Ajratish" 2 000 000 → Asosiy'da xavfsiz pul 2 000 000 ga kamayadi, hamyon balansi o'zgarmaydi.
+3. "+" → Xarajat → "+ Maqsadga bog'lash" → To'y, 500 000 → maqsadda "Ajratilgan qoldiq" 1 500 000 bo'ladi, "Yig'ilgan" o'zgarmaydi; xavfsiz pul o'zgarmaydi (hamyondan ham, ajratmadan ham 500 000 kamaydi).
+4. Maqsad sahifasida "Bo'shatish" 500 000 → yig'ilgan va qoldiq kamayadi, xavfsiz pul oshadi. Qoldiqdan ko'p bo'shatishga urinib ko'ring → xato.
+5. Qarz: "Kredit", 12 000 000, allaqachon to'langan 4 000 000, muddat 3 oy keyin → "To'lov qilish" → forma "Qarz to'lovi" va shu maqsad bilan ochiladi → 1 000 000. Asosiy'da "Bu oy → Xarajat" o'zgarmaydi, "Qarz to'lovlari" qatori chiqadi.
+6. Muddatga yetmaydigan maqsad qizil "Kech qolmoqda" va "oyiga yana X kerak" bilan ko'rinadi (X = oyiga kerak − oxirgi 3 oydagi o'rtacha).
+7. Maqsadlar sahifasidagi "Taqsimot tavsiyasi": xavfsiz pul → majburiy xarajatlar → maqsadlar ustuvorlik bo'yicha → erkin pul; kunlik limit = (xavfsiz pul − majburiy qolgani − maqsadlarga shu oy qolgani) ÷ qolgan kunlar.
 
 ## Kodni `main` ga birlashtirish (Pull Request)
 
