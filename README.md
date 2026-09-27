@@ -67,17 +67,12 @@ Vercel repo'ga ulangan bo'lsa, `main` ga birlashtirilgandan keyin sayt avtomatik
 
 ## Tezlik
 
-### JWT kalit turi (eng katta ta'sir)
-Ilova foydalanuvchini `getClaims()` bilan tekshiradi. Uning tezligi Supabase loyihangizdagi JWT kalit turiga bog'liq:
+### JWT kalit turi
+Loyiha **ECC (P-256) / ES256** kalitida ishlaydi (Supabase → Project Settings → JWT Keys: ECC — current, Legacy HS256 — previous). Migratsiya kerak emas.
 
-- **ES256 / RS256 (asimmetrik kalit)** — JWT serverda mahalliy tekshiriladi, tarmoq so'rovi yo'q (ochiq kalit 10 daqiqa keshlanadi).
-- **HS256 (eski "Legacy JWT secret")** — har bir tekshiruvda Supabase Auth serveriga so'rov ketadi. Har bir sahifa o'tishiga 2 ta qo'shimcha tarmoq so'rovi qo'shiladi.
-
-Tekshirish va o'tkazish: Supabase → **Project Settings → JWT Keys**.
-1. "Legacy JWT Secret" hozirgi (current) kalit bo'lsa — loyiha HS256 da.
-2. **Migrate JWT secret** → so'ng yangi **ECC (P-256)** kalitni yarating va **Rotate keys** bilan uni asosiy qiling.
-3. Eski secret'ni **revoke qilmang** — `.env.local` dagi anon kaliti hali u bilan imzolangan.
-   Kod o'zgarishi kerak emas.
+- `getClaims()` JWT'ni serverda mahalliy tekshiradi, Auth serveriga so'rov ketmaydi (ochiq kalit 10 daqiqa keshlanadi).
+- Legacy HS256 kalitini **revoke qilmang**: `.env.local` dagi anon kaliti u bilan imzolangan.
+- Agar kelajakda ECC kalit o'chirilsa va loyiha HS256 ga qaytsa, har bir sahifa o'tishiga 2 ta qo'shimcha tarmoq so'rovi qo'shiladi (`DEBUG_TIMING` loglarida `GET /auth/v1/user` qatorlari chiqadi).
 
 ### Vercel regioni
 Vercel funksiyalari Supabase bazasiga yaqin joyda ishlashi kerak. Supabase regionini **Project Settings → General** da ko'ring va Vercel'da **Settings → Functions → Function Region** ni shunga eng yaqin regionga qo'ying (masalan Supabase `eu-central-1` Frankfurt → Vercel `fra1`).
