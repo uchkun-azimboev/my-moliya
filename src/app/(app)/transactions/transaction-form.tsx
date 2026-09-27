@@ -275,19 +275,17 @@ export function TransactionForm({
           </button>
         ))}
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label htmlFor="date">Sana</Label>
-          <Input id="date" name="date" type="date" value={date} onChange={(e) => {
-              setDate(e.target.value)
-              if (wallet?.currency === "USD" && e.target.value) refreshRate(e.target.value)
-            }}
-            required className="h-11 text-base" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="note">Izoh</Label>
-          <Input id="note" name="note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} className="h-11 text-base" />
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="date">Sana</Label>
+        <Input id="date" name="date" type="date" value={date} onChange={(e) => {
+            setDate(e.target.value)
+            if (wallet?.currency === "USD" && e.target.value) refreshRate(e.target.value)
+          }}
+          required className="h-11 w-full min-w-0 text-base" />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="note">Izoh</Label>
+        <Input id="note" name="note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} className="h-11 text-base" />
       </div>
 
       <FormError message={state.error} />
