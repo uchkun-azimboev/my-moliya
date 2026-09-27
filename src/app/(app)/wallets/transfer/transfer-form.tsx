@@ -5,6 +5,7 @@ import { ArrowDown, Trash2 } from "lucide-react"
 import { AmountInput } from "@/components/amount-input"
 import { FormError } from "@/components/form-error"
 import { Button } from "@/components/ui/button"
+import { useCbuRate, type CbuRate } from "@/hooks/use-cbu-rate"
 import { useFormAction } from "@/hooks/use-form-action"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,7 +16,16 @@ import type { ActionState } from "@/lib/action-state"
 import type { WalletBalance } from "@/lib/types"
 import { createTransfer, deleteTransfer } from "../actions"
 
-export function TransferForm({ wallets, today }: { wallets: WalletBalance[]; today: string }) {
+export function TransferForm({
+  wallets,
+  today,
+  cbuRate,
+}: {
+  wallets: WalletBalance[]
+  today: string
+  cbuRate: CbuRate
+}) {
+  const cbu = useCbuRate(cbuRate)
   const [fromId, setFromId] = useState(wallets[0]?.id ?? "")
   const [toId, setToId] = useState(wallets[1]?.id ?? "")
   const [fromAmount, setFromAmount] = useState("")
@@ -86,6 +96,7 @@ export function TransferForm({ wallets, today }: { wallets: WalletBalance[]; tod
           <AmountInput id="to_amount" name="to_amount" value={toAmount} onChange={setToAmount} placeholder="0" required />
           <p className="text-xs text-muted-foreground">
             {rate ? `Kurs: 1 USD = ${formatMoney(rate.toFixed(2), "UZS")}` : "Kurs ikki summadan avtomatik hisoblanadi."}
+            {cbu.info && ` · CBU: ${formatMoney(cbu.info.rate, "UZS")}`}
           </p>
         </div>
       )}
@@ -93,7 +104,15 @@ export function TransferForm({ wallets, today }: { wallets: WalletBalance[]; tod
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label htmlFor="date">Sana</Label>
-          <Input id="date" name="date" type="date" defaultValue={today} required className="h-11 text-base" />
+          <Input
+            id="date"
+            name="date"
+            type="date"
+            defaultValue={today}
+            onChange={(e) => e.target.value && cbu.load(e.target.value)}
+            required
+            className="h-11 text-base"
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="note">Izoh</Label>

@@ -44,6 +44,11 @@ Ilovaning asosiy savoli: "Keyingi 30–90 kunda pulim yetadimi, majburiyatlarim 
 - Balanslar, avans, kunlik limit kabi hosila raqamlar **saqlanmaydi** — har safar tranzaksiyalardan hisoblanadi (SQL view yoki funksiya orqali).
 - Summalar formatlanishi: `1 250 000 so'm`, `$1,250`.
 
+## Interfeys qoidalari
+
+- Mavzu: Yorug' / Qorong'i / Tizim (standart — Tizim), `next-themes` orqali, tanlov qurilmada (localStorage) saqlanadi. Ranglar faqat `globals.css` dagi tokenlar orqali (`bg-card`, `text-muted-foreground`, `text-income`, `--chart-*` va h.k.) — qattiq kodlangan rang ishlatilmaydi, har bir yangi sahifa ikkala rejimda tekshiriladi.
+- PWA `theme-color` tanlangan mavzuga ergashadi (`src/components/theme.tsx`).
+
 ## Modullar
 
 1. **Dashboard** — xavfsiz pul, jami pul, kunlik limit, bu oy daromad/xarajat, maqsadlar progressi, faol majburiyatlar.
@@ -65,6 +70,7 @@ Ilovaning asosiy savoli: "Keyingi 30–90 kunda pulim yetadimi, majburiyatlarim 
 - `goals`: id, name, kind (saving/debt), target_amount, currency, start_amount, deadline, priority, status
 - `budgets`: id, month (date, oyning 1-kuni), category_id, planned_amount
 - `exchange_rates`: date, usd_to_uzs (CBU'dan)
+- `settings`: user_id (bitta qator), monthly_fixed_expenses — **vaqtinchalik**, 5-bosqichda budjet bilan almashtiriladi
 
 Barcha jadvallarda `user_id`, `created_at` bor.
 
@@ -85,6 +91,10 @@ Barcha jadvallarda `user_id`, `created_at` bor.
 
 **Kunlik limit**
 `(xavfsiz_pul − oy oxirigacha rejalashtirilgan majburiy to'lovlar − shu oyning maqsad ajratmalari) ÷ oyning qolgan kunlari` (0 dan kichik bo'lsa 0 va ogohlantirish)
+
+- Hozircha (2-bosqichdan): `oy oxirigacha rejalashtirilgan majburiy to'lovlar = max(settings.monthly_fixed_expenses − shu oy "fixed" guruhda to'langan, 0)`. Sozlama kiritilmagan bo'lsa dashboard'da "Oylik majburiy xarajatlarni kiriting" eslatmasi chiqadi.
+- **5-bosqichda** `monthly_fixed_expenses` o'rniga budjetdagi (`budgets`) "fixed" kategoriyalar rejasi ishlatiladi va sozlama olib tashlanadi.
+- Oyning qolgan kunlari bugunni ham o'z ichiga oladi (Toshkent vaqti).
 
 **Xavfsiz daromad (reja uchun)**
 Oxirgi 3–6 oydagi eng past oylik daromad.

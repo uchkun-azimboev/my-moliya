@@ -10,6 +10,13 @@ Loyiha spetsifikatsiyasi: [CLAUDE.md](CLAUDE.md).
 - **Kategoriyalar**: daromad/xarajat, guruh (majburiy doimiy / ish uchun / o'zgaruvchan), belgi, arxivlash, bir tugmada standart ro'yxat
 - **Tranzaksiyalar**: tezkor forma (summa → kategoriya → hamyon), sana standart bugun, hamyon standart oxirgi ishlatilgani; oy/tur/hamyon/kategoriya bo'yicha filtr; tahrirlash va o'chirish
 
+## 2-bosqich: nima bor
+
+- **Dashboard**: xavfsiz pul, bugungi (kunlik) limit, jami pul (UZS + USD CBU kursida), bu oy daromad/xarajat, ogohlantirishlar
+- **CBU kursi**: kuniga bir marta olinadi va bazada saqlanadi; CBU javob bermasa oxirgi saqlangan kurs ishlatiladi ("bugungi kurs olinmadi" belgisi bilan)
+- **Tranzaksiya formasi**: USD hamyonda kurs tanlangan sana bo'yicha CBU'dan avtomatik yoziladi (qo'lda o'zgartirish mumkin)
+- **Sozlamalar** (dashboard'dagi ⚙️): mavzu (Yorug' / Qorong'i / Tizim), oylik majburiy xarajatlar, chiqish
+
 ## O'rnatish — qadamma-qadam
 
 ### 1. Supabase sozlamalari
@@ -25,6 +32,9 @@ Loyiha spetsifikatsiyasi: [CLAUDE.md](CLAUDE.md).
 3. `0003_transactions.sql`
 4. `0004_transfers.sql`
 5. `0005_wallet_balances.sql`
+6. `0006_exchange_rates.sql` — 2-bosqich
+7. `0007_settings.sql` — 2-bosqich
+8. `0008_dashboard_summary.sql` — 2-bosqich
 
 Har biridan keyin "Success. No rows returned" chiqishi kerak.
 
@@ -52,6 +62,14 @@ Brauzerda http://localhost:3000 ni oching.
 10. Tranzaksiyani bosib summasini o'zgartiring yoki o'chiring → balanslar mos o'zgaradi.
 11. Yozuvi bor hamyonni o'chirishga urinib ko'ring → "arxivlang" degan xabar chiqadi.
 12. Telefonda ham oching (Vercel'ga joylagandan keyin) va "Chiqish" ni tekshiring.
+
+### 2-bosqichni tekshirish
+1. Bosh sahifani oching → "Xavfsiz pul", "Bugungi limit" va "Oylik majburiy xarajatlarni kiriting" eslatmasi ko'rinadi. "Jami pul" kartasi ostida `1 USD = … so'm · CBU, <bugungi sana>` yozuvi bo'ladi — raqamni cbu.uz dagi kurs bilan solishtiring.
+2. Qo'lda tekshiring: xavfsiz pul = so'm hamyonlar + dollar hamyonlar × kurs; bugungi limit = xavfsiz pul ÷ oy oxirigacha qolgan kunlar (bugun ham kiradi).
+3. ⚙️ → **Sozlamalar** → oylik majburiy xarajatlarni kiriting (masalan ijara + kommunal) → Saqlash. Bosh sahifada limit kamayadi: `(xavfsiz pul − (kiritilgan summa − shu oy "Majburiy doimiy" guruhda to'langani)) ÷ qolgan kunlar`.
+4. Juda katta summa kiriting (masalan 100 000 000) → limit 0 bo'ladi va "Oy oxirigacha pul yetmaydi: yana X so'm kerak" chiqadi. Keyin haqiqiy summaga qaytaring.
+5. **Tranzaksiyalar** → Dollar hamyonni tanlang → kurs maydoni o'zi to'ladi ("CBU kursi, …"). Sanani o'tgan kunga o'zgartiring → kurs o'sha kunnikiga almashadi.
+6. **Mavzu**: Sozlamalar → Qorong'i → butun ilova qorong'i bo'ladi, telefonning yuqori paneli ham. Sahifani yangilang — oq "miltillash" bo'lmasligi kerak. Tizim → telefon sozlamasiga ergashadi (telefonda qorong'i rejimni yoqib/o'chirib ko'ring).
 
 ## Kodni `main` ga birlashtirish (Pull Request)
 
