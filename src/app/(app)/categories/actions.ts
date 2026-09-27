@@ -64,6 +64,7 @@ const DEFAULT_CATEGORIES = [
   { name: "Boshqa daromad", kind: "income", group_type: null, icon: "💰" },
   { name: "Ijara", kind: "expense", group_type: "fixed", icon: "🏠" },
   { name: "Kommunal", kind: "expense", group_type: "fixed", icon: "💡" },
+  { name: "Qarz to'lovi", kind: "expense", group_type: null, icon: "💳" },
   { name: "Aloqa va internet", kind: "expense", group_type: "fixed", icon: "📱" },
   { name: "Obunalar va servislar", kind: "expense", group_type: "work", icon: "🧰" },
   { name: "Reklama va o'qish", kind: "expense", group_type: "work", icon: "📈" },

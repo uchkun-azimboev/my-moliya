@@ -13,7 +13,7 @@ import { NativeSelect } from "@/components/ui/native-select"
 import { formatDate, formatMoney } from "@/lib/format"
 import { formatAmountInput, normalizeAmount } from "@/lib/money"
 import type { ActionState } from "@/lib/action-state"
-import type { Category, CategoryKind, WalletBalance } from "@/lib/types"
+import { DEBT_CATEGORY_NAME, type Category, type CategoryKind, type WalletBalance } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { createTransaction, deleteTransaction, updateTransaction } from "./actions"
 
@@ -25,11 +25,15 @@ export type EditableTransaction = {
   wallet_id: string
   category_id: string
   project_id: string | null
+  goal_id: string | null
   note: string | null
 }
 
 /** Tanlash uchun loyiha (faol loyihalar + tahrirlanayotgan yozuvniki) */
 export type ProjectOption = { id: string; name: string; client_name: string }
+
+/** Tanlash uchun maqsad (faol maqsadlar + tahrirlanayotgan yozuvniki) */
+export type GoalOption = { id: string; name: string; kind: "saving" | "debt" }
 
 type Props = {
   categories: Category[]
@@ -43,6 +47,9 @@ type Props = {
   projects?: ProjectOption[]
   /** /transactions/new?project=… — loyiha sahifasidan kelganda */
   defaultProjectId?: string
+  goals?: GoalOption[]
+  /** /transactions/new?goal=… — maqsad sahifasidan "To'lov qilish" */
+  defaultGoalId?: string
 }
 
 export function TransactionForm({
@@ -54,14 +61,23 @@ export function TransactionForm({
   transaction,
   projects = [],
   defaultProjectId,
+  goals = [],
+  defaultGoalId,
 }: Props) {
+  const defaultGoal = goals.find((g) => g.id === defaultGoalId)
+  // Qarz maqsadidan kelinsa — "Qarz to'lovi" kategoriyasi oldindan tanlanadi
+  const debtCategory = categories.find((c) => c.kind === "expense" && c.name === DEBT_CATEGORY_NAME)
   const initialCategory = categories.find((c) => c.id === transaction?.category_id)
-  const [kind, setKind] = useState<CategoryKind>(initialCategory?.kind ?? (defaultProjectId ? "income" : "expense"))
+  const [kind, setKind] = useState<CategoryKind>(initialCategory?.kind ?? (defaultProjectId && !defaultGoal ? "income" : "expense"))
+  const [goalId, setGoalId] = useState(transaction?.goal_id ?? defaultGoal?.id ?? "")
+  const [goalOpen, setGoalOpen] = useState(false)
   const [projectId, setProjectId] = useState(transaction?.project_id ?? defaultProjectId ?? "")
   // Xarajatda loyiha maydoni yashirin — "Loyihaga bog'lash" bosilganda ochiladi (qaytarilgan pul uchun)
   const [expenseProjectOpen, setExpenseProjectOpen] = useState(false)
   const [amount, setAmount] = useState(transaction ? formatAmountInput(String(transaction.amount)) : "")
-  const [categoryId, setCategoryId] = useState(transaction?.category_id ?? "")
+  const [categoryId, setCategoryId] = useState(
+    transaction?.category_id ?? (defaultGoal?.kind === "debt" && debtCategory ? debtCategory.id : "")
+  )
   const [walletId, setWalletId] = useState(
     transaction?.wallet_id ??
       (wallets.some((w) => w.id === defaultWalletId) ? defaultWalletId! : (wallets[0]?.id ?? ""))
@@ -92,6 +108,8 @@ export function TransactionForm({
       setNote("")
       setProjectId("")
       setExpenseProjectOpen(false)
+      setGoalId("")
+      setGoalOpen(false)
     }
     return result
   }, {})
@@ -116,6 +134,7 @@ export function TransactionForm({
       <input type="hidden" name="category_id" value={categoryId} />
       <input type="hidden" name="wallet_id" value={walletId} />
       <input type="hidden" name="project_id" value={projectId} />
+      <input type="hidden" name="goal_id" value={kind === "expense" ? goalId : ""} />
 
       <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
         {(["expense", "income"] as const).map((k) => (
@@ -125,6 +144,7 @@ export function TransactionForm({
             onClick={() => {
               setKind(k)
               setCategoryId("")
+              if (k === "income") setGoalId("")
             }}
             className={cn(
               "h-9 rounded-md text-sm font-medium",
@@ -201,6 +221,32 @@ export function TransactionForm({
           <RateHint rate={rate} cbu={cbu.info} loading={cbu.loading} />
         </div>
       )}
+
+      {/* Maqsad (ixtiyoriy, faqat xarajat): qarz to'lovi yoki jamg'armadan ishlatilgan pul */}
+      {kind === "expense" &&
+        goals.length > 0 &&
+        (goalOpen || goalId || categoryId === debtCategory?.id ? (
+          <div className="space-y-2">
+            <Label htmlFor="goal">Maqsad (ixtiyoriy)</Label>
+            <NativeSelect id="goal" value={goalId} onChange={(e) => setGoalId(e.target.value)}>
+              <option value="">— Maqsadsiz —</option>
+              {goals.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.kind === "debt" ? "Qarz" : "Jamg'arma"} · {g.name}
+                </option>
+              ))}
+            </NativeSelect>
+            <p className="text-xs text-muted-foreground">
+              {goals.find((g) => g.id === goalId)?.kind === "saving"
+                ? "Jamg'armadan ishlatilgan pul — ajratma shu summaga bo'shaydi."
+                : "Qarz to'lovi — oylik xarajat statistikasiga kirmaydi, alohida ko'rsatiladi."}
+            </p>
+          </div>
+        ) : (
+          <button type="button" onClick={() => setGoalOpen(true)} className="block text-sm text-muted-foreground underline underline-offset-2">
+            + Maqsadga bog&apos;lash (qarz to&apos;lovi, jamg&apos;armadan xarajat)
+          </button>
+        ))}
 
       {/* Loyiha (ixtiyoriy): daromadda doim, xarajatda so'ralganda */}
       {projects.length > 0 &&

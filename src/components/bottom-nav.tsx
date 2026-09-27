@@ -2,22 +2,22 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ArrowLeftRight, Briefcase, House, Plus, Settings, Wallet } from "lucide-react"
+import { ArrowLeftRight, Briefcase, House, Plus, Target, Wallet } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const items = [
   { href: "/", label: "Asosiy", icon: House },
   { href: "/transactions", label: "Tranzaksiyalar", icon: ArrowLeftRight },
   { href: "/projects", label: "Loyihalar", icon: Briefcase },
+  { href: "/goals", label: "Maqsadlar", icon: Target },
   { href: "/wallets", label: "Hamyonlar", icon: Wallet },
-  { href: "/settings", label: "Sozlamalar", icon: Settings },
 ]
 
-// Sozlamalar ichidagi bo'limlar (kategoriyalar, mijozlar loyihalar ichida)
-const sections: Record<string, string> = { "/categories": "/settings", "/clients": "/projects" }
+// Menyuda yo'q bo'limlar qaysi band ostida ko'rinadi (Sozlamalar — dashboard'dagi ⚙️ orqali)
+const sections: Record<string, string> = { "/settings": "/", "/categories": "/", "/clients": "/projects" }
 
 /** "+" tugmasi faqat asosiy sahifalarda — formalar va tahrirlashda xalaqit bermasin */
-const FAB_PAGES = ["/", "/transactions", "/projects", "/wallets", "/settings"]
+const FAB_PAGES = ["/", "/transactions", "/projects", "/goals", "/wallets"]
 
 export function BottomNav() {
   const pathname = usePathname()

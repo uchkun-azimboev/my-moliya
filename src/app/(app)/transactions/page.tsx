@@ -18,6 +18,7 @@ type Row = {
   wallet: { name: string } | null
   category: { name: string; kind: CategoryKind; icon: string | null } | null
   project: { name: string } | null
+  goal: { name: string; kind: "saving" | "debt" } | null
 }
 
 export default async function TransactionsPage({ searchParams }: PageProps<"/transactions">) {
@@ -34,7 +35,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
   let query = supabase
     .from("transactions")
     .select(
-      "id, date, amount, currency, rate_to_uzs, note, wallet:wallets!transactions_wallet_fkey(name), category:categories!transactions_category_fkey!inner(name, kind, icon), project:projects!transactions_project_fkey(name)"
+      "id, date, amount, currency, rate_to_uzs, note, wallet:wallets!transactions_wallet_fkey(name), category:categories!transactions_category_fkey!inner(name, kind, icon), project:projects!transactions_project_fkey(name), goal:goals!transactions_goal_fkey(name, kind)"
     )
     .gte("date", from)
     .lt("date", to)
@@ -65,10 +66,11 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
     (acc, r) => {
       const uzs = Number(r.amount) * Number(r.rate_to_uzs)
       if (r.category?.kind === "income") acc.income += uzs
+      else if (r.goal?.kind === "debt") acc.debt += uzs // qarz to'lovi — xarajat statistikasiga kirmaydi
       else acc.expense += uzs
       return acc
     },
-    { income: 0, expense: 0 }
+    { income: 0, expense: 0, debt: 0 }
   )
 
   const byDate = new Map<string, Row[]>()
@@ -144,6 +146,11 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
           <p className="mt-1 font-semibold text-expense tabular-nums">{formatMoney(totals.expense, "UZS")}</p>
         </div>
       </div>
+      {totals.debt > 0 && (
+        <p className="-mt-2 mb-4 text-right text-xs text-muted-foreground">
+          Qarz to&apos;lovlari (xarajatga kirmagan): <span className="tabular-nums">{formatMoney(totals.debt, "UZS")}</span>
+        </p>
+      )}
 
       {rows.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">Bu davrda yozuv yo&apos;q.</p>
@@ -170,6 +177,7 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
                           <span className="block truncate text-xs text-muted-foreground">
                             {r.wallet?.name}
                             {r.project && ` · ${r.project.name}`}
+                            {r.goal && ` · ${r.goal.kind === "debt" ? "qarz" : "maqsad"}: ${r.goal.name}`}
                             {r.note && ` · ${r.note}`}
                           </span>
                         </span>

@@ -88,3 +88,49 @@ export const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
   partial: "Qisman bajarildi",
   done: "To'liq bajarildi",
 }
+
+export type GoalKind = "saving" | "debt"
+export type GoalStatus = "active" | "done" | "closed"
+
+/** goal_summary view qatori — *_amount maqsad valyutasida, *_uzs so'mda */
+export type GoalSummary = {
+  id: string
+  name: string
+  kind: GoalKind
+  target_amount: number
+  currency: Currency
+  start_amount: number
+  deadline: string | null
+  priority: number
+  monthly_plan: number | null
+  closed: boolean
+  note: string | null
+  status: GoalStatus
+  done_amount: number
+  remaining_amount: number
+  progress: number
+  reserved_amount: number
+  reserved_uzs: number
+  months_left: number | null
+  monthly_needed: number | null
+  plan_amount: number
+  month_contrib: number
+  month_left_amount: number
+  month_left_uzs: number
+  avg_3m: number
+  real_date: string | null
+  late: boolean
+  extra_needed: number | null
+  remaining_uzs: number
+}
+
+export const GOAL_SUMMARY_COLUMNS =
+  "id, name, kind, target_amount, currency, start_amount, deadline, priority, monthly_plan, closed, note, status, done_amount, remaining_amount, progress, reserved_amount, reserved_uzs, months_left, monthly_needed, plan_amount, month_contrib, month_left_amount, month_left_uzs, avg_3m, real_date, late, extra_needed, remaining_uzs"
+
+export const GOAL_KIND_LABEL: Record<GoalKind, string> = {
+  saving: "Jamg'arma",
+  debt: "Qarz",
+}
+
+/** Qarz to'lovi kategoriyasi nomi — qarz maqsadi yaratilganda bo'lmasa qo'shiladi */
+export const DEBT_CATEGORY_NAME = "Qarz to'lovi"
