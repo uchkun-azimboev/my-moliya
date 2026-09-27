@@ -43,6 +43,14 @@ Loyiha spetsifikatsiyasi: [CLAUDE.md](CLAUDE.md).
 - Dashboard: "N ta kategoriya budjetdan oshib ketdi" eslatmasi, "Budjet →" havolasi
 - **PWA**: bosh ekranga o'rnatish (to'liq ekran, ikonka), yuqori panel rangi mavzuga mos, internet bo'lmasa "Internet yo'q" sahifasi, yangi versiyaga avtomatik o'tish; Sozlamalar → "Ilovani o'rnatish"
 
+## 5b: nima bor
+
+- **Hisobotlar** (Asosiy → Hisobotlar tabi): runway, xavfsiz daromad, oyma-oy trend (daromad, xarajat, qarz to'lovlari, sof natija), xarajat kategoriyalari (bu oy / 3 / 6 oy), mijozlar ulushi (6 oy, 50% dan oshsa ogohlantirish)
+- **90 kunlik prognoz**: xavfsiz puldan boshlanadi; kutilayotgan loyiha to'lovlari, retainerlar, majburiy va boshqa xarajatlar, maqsad rejalari; "Retainer bilan" / "Retainersiz" chiziqlari, minusga tushish kuni; 30/60/90 kun jadvali
+- Retainer loyihada **"Davom etadi"** belgisi (o'chirilsa prognozga keyingi davrlar kirmaydi)
+- Dashboard "Sof natija" endi qarz to'lovlarini ham ayiradi
+- **Sozlamalar → Ma'lumotlarni yuklab olish**: Excel (barcha ma'lumotlar) va CSV (tranzaksiyalar)
+
 ## O'rnatish — qadamma-qadam
 
 ### 1. Supabase sozlamalari
@@ -75,6 +83,9 @@ Loyiha spetsifikatsiyasi: [CLAUDE.md](CLAUDE.md).
 20. `0020_budgets.sql` — 5a
 21. `0021_budget_report.sql` — 5a
 22. `0022_dashboard_summary_v4.sql` — 5a
+23. `0023_projects_continues.sql` — 5b
+24. `0024_reports.sql` — 5b
+25. `0025_forecast.sql` — 5b
 
 Har biridan keyin "Success. No rows returned" chiqishi kerak.
 
@@ -138,6 +149,16 @@ Brauzerda http://localhost:3000 ni oching.
 3. Keyingi oyga o'ting (›) → "… rejasini nusxalash" → rejalar ko'chadi; qayta bossangiz mavjud rejalar o'zgarmaydi.
 4. Telefonda (Vercel manzili): iPhone — Safari → Ulashish → "Bosh ekranga qo'shish"; Android — Chrome menyusi → "Ilovani o'rnatish" (yoki Sozlamalar → "Ilovani o'rnatish"). Ikonkadan ochilganda brauzer panellari bo'lmaydi.
 5. Ilova ochiq holda internetni o'chirib, boshqa bo'limga o'ting → "Internet yo'q" sahifasi (raqamlar ko'rinmaydi). Internetni yoqib "Qayta urinish".
+
+### 5b ni tekshirish
+1. Asosiy → **Hisobotlar** tabi. Pastki menyuda "Asosiy" faol bo'lib qoladi.
+2. Runway va Xavfsiz daromad: ilovada 3 to'liq oydan kam ma'lumot bo'lsa "Ma'lumot yetarli emas" chiqadi — bu normal.
+3. Prognoz: tugash sanasi kelajakda bo'lgan, to'liq to'lanmagan loyiha qo'shing → grafikda o'sha kuni balans ko'tariladi. Sanasi yo'q loyiha grafik ostida "prognozga kirmadi" qatorida.
+4. Retainer loyiha → "Davom etadi" belgisini o'chiring → Hisobotlarda faqat bitta chiziq qoladi; yoqsangiz ikki chiziq.
+5. Balans minusga tushsa grafik ustida qizil yozuv va nuqta: "Balans: sana kuni pul yetmay qoladi".
+6. Mijozlar ulushida biror mijoz 50% dan oshsa sariq ogohlantirish.
+7. Sozlamalar → "Excel" va "CSV" tugmalari → fayllar yuklanadi, Excel'da 11 ta varaq, o'zbekcha harflar to'g'ri.
+8. Qorong'i mavzuda ham grafiklar aniq ko'rinishini tekshiring.
 
 ### Ilova yangilanmasa nima qilish kerak
 Odatda yangi versiya o'zi o'rnatiladi: ilovani ochganingizda (yoki boshqa ilovadan qaytganingizda) yangilanish tekshiriladi va sahifa bir marta o'zi qayta yuklanadi.
