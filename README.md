@@ -17,6 +17,16 @@ Loyiha spetsifikatsiyasi: [CLAUDE.md](CLAUDE.md).
 - **Tranzaksiya formasi**: USD hamyonda kurs tanlangan sana bo'yicha CBU'dan avtomatik yoziladi (qo'lda o'zgartirish mumkin)
 - **Sozlamalar** (dashboard'dagi ⚙️): mavzu (Yorug' / Qorong'i / Tizim), oylik majburiy xarajatlar, chiqish
 
+## 3-bosqich: nima bor
+
+- **Loyihalar** (pastki menyuda): mijoz, summa (so'm yoki $), sanalar; bajarilish foizda yoki birlikda (12 ta video, 5 tasi tayyor → 41,7%); status avtomatik
+- Har bir loyiha: olingan / ishlab topilgan / majburiyat / kutilayotgan to'lov, progress chizig'i, bajarilishni tez yangilash, muddati o'tgan bo'lsa qizil belgi
+- **Oylik (retainer) loyiha**: "Keyingi oyni ochish" — oldingi davrni yopish ixtiyoriy, bajarilmagan qism haqida ogohlantirish bilan
+- **Mijozlar** (Loyihalar → Mijozlar): ro'yxat, izoh, arxivlash
+- Tranzaksiyada **Loyiha** maydoni: daromadda doim, xarajatda "Loyihaga bog'lash (qaytarilgan pul)"
+- **Dashboard**: xavfsiz pul endi majburiyatlarni ayiradi, "Faol majburiyatlar" kartasi (jami + eng katta 3 ta)
+- Pastki menyu: Asosiy · Tranzaksiyalar · Loyihalar · Hamyonlar · Sozlamalar (Kategoriyalar — Sozlamalar ichida); asosiy sahifalarda dumaloq **"+"** tugma
+
 ## O'rnatish — qadamma-qadam
 
 ### 1. Supabase sozlamalari
@@ -35,6 +45,12 @@ Loyiha spetsifikatsiyasi: [CLAUDE.md](CLAUDE.md).
 6. `0006_exchange_rates.sql` — 2-bosqich
 7. `0007_settings.sql` — 2-bosqich
 8. `0008_dashboard_summary.sql` — 2-bosqich
+9. `0009_clients.sql` — 3-bosqich
+10. `0010_projects.sql` — 3-bosqich
+11. `0011_transactions_project_fk.sql` — 3-bosqich
+12. `0012_project_summary.sql` — 3-bosqich
+13. `0013_dashboard_summary_v2.sql` — 3-bosqich
+14. `0014_project_expected_in_currency.sql` — kutilayotgan to'lov loyiha valyutasida
 
 Har biridan keyin "Success. No rows returned" chiqishi kerak.
 
@@ -70,6 +86,18 @@ Brauzerda http://localhost:3000 ni oching.
 4. Juda katta summa kiriting (masalan 100 000 000) → limit 0 bo'ladi va "Oy oxirigacha pul yetmaydi: yana X so'm kerak" chiqadi. Keyin haqiqiy summaga qaytaring.
 5. **Tranzaksiyalar** → Dollar hamyonni tanlang → kurs maydoni o'zi to'ladi ("CBU kursi, …"). Sanani o'tgan kunga o'zgartiring → kurs o'sha kunnikiga almashadi.
 6. **Mavzu**: Sozlamalar → Qorong'i → butun ilova qorong'i bo'ladi, telefonning yuqori paneli ham. Sahifani yangilang — oq "miltillash" bo'lmasligi kerak. Tizim → telefon sozlamasiga ergashadi (telefonda qorong'i rejimni yoqib/o'chirib ko'ring).
+
+### 3-bosqichni tekshirish
+1. **Loyihalar → Mijozlar → Qo'shish**: bitta mijoz yarating.
+2. **Loyihalar → Yangi**: $1,000 lik loyiha, bajarilish 40%. So'ng "+" → Daromad → $500, Dollar hamyon, **Loyiha** maydonida shu loyiha → Qo'shish.
+   Loyiha kartasida: olingan = 500 × kurs; ishlab topilgan = olingan × 40%; majburiyat = olingan − ishlab topilgan. Masalan kurs 12 600 bo'lsa: 6 300 000 / 2 520 000 / 3 780 000.
+3. Ikkinchi loyiha: **Birlikda**, jami 12, tayyor 5 → formada "41,7%" chiqadi. Kartadagi "Bajarilishni yangilash" → "+" → 6/12 · 50%.
+4. Qaytarilgan pul: "+" → Xarajat → "+ Loyihaga bog'lash" → loyihani tanlang → olingan to'lov shu summaga kamayadi.
+5. "To'liq bajarildi deb yopish" → majburiyat 0 bo'ladi, loyiha "Tugallangan" bo'limiga o'tadi ("Qayta ochish" bilan qaytariladi).
+6. Oylik loyiha (✓ Oylik, masalan 1–30 sentabr) → "Keyingi oyni ochish": 1–31 oktabr davri yaratiladi; bajarilish 100% dan kam bo'lsa ogohlantirish chiqadi.
+7. Tugash sanasi o'tgan loyiha qizil "Muddati o'tgan" belgisi bilan ko'rinadi.
+8. **Asosiy**: xavfsiz pul = jami pul − barcha faol loyihalar majburiyati; "Faol majburiyatlar" kartasida jami va eng katta 3 ta loyiha.
+9. To'lovi bor loyihani o'chirishga urinib ko'ring → "yoping" degan xabar chiqadi.
 
 ## Kodni `main` ga birlashtirish (Pull Request)
 

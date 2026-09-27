@@ -9,6 +9,7 @@ import { useFormAction } from "@/hooks/use-form-action"
 import { useCbuRate, type CbuRate } from "@/hooks/use-cbu-rate"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { NativeSelect } from "@/components/ui/native-select"
 import { formatDate, formatMoney } from "@/lib/format"
 import { formatAmountInput, normalizeAmount } from "@/lib/money"
 import type { ActionState } from "@/lib/action-state"
@@ -23,8 +24,12 @@ export type EditableTransaction = {
   rate_to_uzs: number
   wallet_id: string
   category_id: string
+  project_id: string | null
   note: string | null
 }
+
+/** Tanlash uchun loyiha (faol loyihalar + tahrirlanayotgan yozuvniki) */
+export type ProjectOption = { id: string; name: string; client_name: string }
 
 type Props = {
   categories: Category[]
@@ -35,11 +40,26 @@ type Props = {
   /** Bugungi CBU kursi — USD hamyon tanlanganda standart */
   cbuRate?: CbuRate
   transaction?: EditableTransaction
+  projects?: ProjectOption[]
+  /** /transactions/new?project=… — loyiha sahifasidan kelganda */
+  defaultProjectId?: string
 }
 
-export function TransactionForm({ categories, wallets, today, defaultWalletId, cbuRate = null, transaction }: Props) {
+export function TransactionForm({
+  categories,
+  wallets,
+  today,
+  defaultWalletId,
+  cbuRate = null,
+  transaction,
+  projects = [],
+  defaultProjectId,
+}: Props) {
   const initialCategory = categories.find((c) => c.id === transaction?.category_id)
-  const [kind, setKind] = useState<CategoryKind>(initialCategory?.kind ?? "expense")
+  const [kind, setKind] = useState<CategoryKind>(initialCategory?.kind ?? (defaultProjectId ? "income" : "expense"))
+  const [projectId, setProjectId] = useState(transaction?.project_id ?? defaultProjectId ?? "")
+  // Xarajatda loyiha maydoni yashirin — "Loyihaga bog'lash" bosilganda ochiladi (qaytarilgan pul uchun)
+  const [expenseProjectOpen, setExpenseProjectOpen] = useState(false)
   const [amount, setAmount] = useState(transaction ? formatAmountInput(String(transaction.amount)) : "")
   const [categoryId, setCategoryId] = useState(transaction?.category_id ?? "")
   const [walletId, setWalletId] = useState(
@@ -70,6 +90,8 @@ export function TransactionForm({ categories, wallets, today, defaultWalletId, c
       setAmount("")
       setCategoryId("")
       setNote("")
+      setProjectId("")
+      setExpenseProjectOpen(false)
     }
     return result
   }, {})
@@ -93,6 +115,7 @@ export function TransactionForm({ categories, wallets, today, defaultWalletId, c
       {transaction && <input type="hidden" name="id" value={transaction.id} />}
       <input type="hidden" name="category_id" value={categoryId} />
       <input type="hidden" name="wallet_id" value={walletId} />
+      <input type="hidden" name="project_id" value={projectId} />
 
       <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
         {(["expense", "income"] as const).map((k) => (
@@ -178,6 +201,33 @@ export function TransactionForm({ categories, wallets, today, defaultWalletId, c
           <RateHint rate={rate} cbu={cbu.info} loading={cbu.loading} />
         </div>
       )}
+
+      {/* Loyiha (ixtiyoriy): daromadda doim, xarajatda so'ralganda */}
+      {projects.length > 0 &&
+        (kind === "income" || expenseProjectOpen || projectId ? (
+          <div className="space-y-2">
+            <Label htmlFor="project">Loyiha (ixtiyoriy)</Label>
+            <NativeSelect id="project" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+              <option value="">— Loyihasiz —</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.client_name} · {p.name}
+                </option>
+              ))}
+            </NativeSelect>
+            {kind === "expense" && (
+              <p className="text-xs text-muted-foreground">Loyihaga bog&apos;langan xarajat olingan to&apos;lovdan ayriladi.</p>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setExpenseProjectOpen(true)}
+            className="text-sm text-muted-foreground underline underline-offset-2"
+          >
+            + Loyihaga bog&apos;lash (qaytarilgan pul)
+          </button>
+        ))}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">

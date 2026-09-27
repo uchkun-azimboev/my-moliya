@@ -24,6 +24,7 @@ export default async function CategoriesPage() {
     <>
       <PageHeader
         title="Kategoriyalar"
+        back="/settings"
         action={
           <Button asChild size="sm" variant="outline">
             <Link href="/categories/new">
