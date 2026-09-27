@@ -1,15 +1,16 @@
 import { notFound } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { today } from "@/lib/format"
-import { requireUser } from "@/lib/supabase/server"
+import { createClient, requireUser } from "@/lib/supabase/server"
 import type { Category, WalletBalance } from "@/lib/types"
 import { DeleteTransactionButton, TransactionForm, type EditableTransaction } from "../transaction-form"
 
 export default async function EditTransactionPage({ params }: PageProps<"/transactions/[id]">) {
   const { id } = await params
-  const { supabase } = await requireUser()
+  const supabase = await createClient()
 
-  const [{ data: tx }, { data: walletData }, { data: categoryData }] = await Promise.all([
+  const [, { data: tx }, { data: walletData }, { data: categoryData }] = await Promise.all([
+    requireUser(),
     supabase
       .from("transactions")
       .select("id, date, amount, rate_to_uzs, wallet_id, category_id, note")

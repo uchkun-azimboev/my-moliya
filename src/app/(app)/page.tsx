@@ -3,16 +3,20 @@ import { Plus } from "lucide-react"
 import { logout } from "@/app/login/actions"
 import { Button } from "@/components/ui/button"
 import { formatMoney } from "@/lib/format"
-import { requireUser } from "@/lib/supabase/server"
+import { createClient, requireUser } from "@/lib/supabase/server"
 import type { WalletBalance } from "@/lib/types"
 
 export default async function HomePage() {
-  const { supabase } = await requireUser()
-  const { data } = await supabase
-    .from("wallet_balances")
-    .select("id, name, currency, kind, archived, opening_balance, balance")
-    .eq("archived", false)
-    .order("created_at")
+  const supabase = await createClient()
+  // Auth tekshiruvi va ma'lumot so'rovi parallel (ma'lumotni RLS himoya qiladi)
+  const [, { data }] = await Promise.all([
+    requireUser(),
+    supabase
+      .from("wallet_balances")
+      .select("id, name, currency, kind, archived, opening_balance, balance")
+      .eq("archived", false)
+      .order("created_at"),
+  ])
   const wallets = (data ?? []) as WalletBalance[]
 
   return (

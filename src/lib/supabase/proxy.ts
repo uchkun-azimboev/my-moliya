@@ -1,11 +1,12 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
-import { supabaseKey, supabaseUrl } from "./env"
+import { supabaseFetch, supabaseKey, supabaseUrl } from "./env"
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
+    global: supabaseFetch ? { fetch: supabaseFetch } : undefined,
     cookies: {
       getAll() {
         return request.cookies.getAll()
@@ -21,6 +22,8 @@ export async function updateSession(request: NextRequest) {
   })
 
   // Muhim: createServerClient va getClaims orasiga boshqa kod qo'ymang.
+  // getClaims() muddati o'tgan sessiyani yangilaydi va JWT'ni tekshiradi. ES256/RS256 kalitda
+  // tekshiruv mahalliy (ochiq kalit 10 daqiqa keshlanadi), HS256 da esa Auth serveriga so'rov ketadi.
   const { data } = await supabase.auth.getClaims()
   const isLoggedIn = Boolean(data?.claims)
   const isLoginPage = request.nextUrl.pathname === "/login"
