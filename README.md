@@ -50,6 +50,7 @@ Loyiha spetsifikatsiyasi: [CLAUDE.md](CLAUDE.md).
 11. `0011_transactions_project_fk.sql` — 3-bosqich
 12. `0012_project_summary.sql` — 3-bosqich
 13. `0013_dashboard_summary_v2.sql` — 3-bosqich
+14. `0014_project_expected_in_currency.sql` — kutilayotgan to'lov loyiha valyutasida
 
 Har biridan keyin "Success. No rows returned" chiqishi kerak.
 

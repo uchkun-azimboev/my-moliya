@@ -88,7 +88,7 @@ Barcha jadvallarda `user_id`, `created_at` bor.
 - `ishlab_topilgan = olingan_to'lov × progress_percent / 100`
 - `majburiyat = olingan_to'lov − ishlab_topilgan`
 - status `done` bo'lsa majburiyat = 0 (ishlab topilgan = olingan)
-- `kutilayotgan_to'lov = max(umumiy_summa_so'mda − olingan_to'lov, 0)`; USD loyiha summasi oxirgi CBU kursida so'mga o'giriladi
+- `kutilayotgan_to'lov` **loyiha valyutasida**: `max(total_amount − olingan_loyiha_valyutasida, 0)`; so'mda ko'rsatishda faqat shu qolgan qism bugungi CBU kursida o'giriladi (0014). Olingan to'lov loyiha valyutasiga: bir xil valyuta — summaning o'zi; USD to'lov → so'm loyiha — tranzaksiya kursida; so'm to'lov → USD loyiha — to'lov kunidagi CBU kursida
 - `muddati_o'tgan` = tugallanmagan va end_date bugundan oldin
 - Retainer "Keyingi oyni ochish": yangi davr = oldingi tugashdan keyingi kun … +1 oy − 1 kun, bajarilish 0 dan; "Oldingi davrni yopish" standart yoqilgan
 
@@ -138,6 +138,23 @@ Har bir mijozning oxirgi 6 oydagi daromad ulushi; 50% dan oshsa ogohlantirish.
 5. Budjet, hisobotlar, prognoz, PWA sozlash
 
 Faqat joriy bosqich ustida ishla. Keyingi bosqichga egasi aytgandagina o't.
+
+## Loyiha holati
+
+**Tugagan bosqichlar:** 1 (skelet, CRUD), 2 (dashboard, kunlik limit, CBU, mavzu, sozlamalar), 3 (mijozlar, loyihalar, avans, xavfsiz pul). Migratsiyalar: `0001`–`0014`.
+
+**Qabul qilingan qarorlar (keyingi sessiyalar uchun):**
+- Next.js 16: middleware fayli `src/proxy.ts`. Auth tekshiruvi `getClaims()`; Supabase loyihasi ES256 (ECC P-256) kalitda — JWT mahalliy tekshiriladi. Legacy HS256 kaliti "previous" holatda qoladi (anon kalit u bilan imzolangan) — revoke qilinmaydi.
+- `createClient()` / `requireUser()` React `cache()` bilan; ro'yxat qatorlaridagi `<Link>` larda `prefetch={false}`; har bir bo'limda `loading.tsx` skeleton.
+- Formalar `useFormAction` (`src/hooks/use-form-action.ts`) orqali — React formani avtomatik tozalamasin.
+- `categories` dagi guruh ustuni `group_type` deb nomlangan (`group` SQL'da band).
+- Tranzaksiya valyutasi hamyondan trigger orqali olinadi; UZS da `rate_to_uzs = 1`. Tranzaksiya/o'tkazma boshqa foydalanuvchi hamyoniga yozilmasligi composite FK `(id, user_id)` bilan ta'minlanadi — yangi jadvallarda ham shu usul.
+- CBU kursi `exchange_rates` da kuniga bir marta keshlanadi (`src/lib/cbu.ts`); CBU javob bermasa oxirgi saqlangan kurs + "olinmadi" belgisi. `CBU_API_URL` — faqat test uchun.
+- Tezkor kiritish — `/transactions/new` (asosiy sahifalardagi "+" tugma); tranzaksiyalar sahifasida faqat ro'yxat va filtr.
+- Loyiha statusi saqlanmaydi, faqat `closed`. Loyihaga bog'langan xarajat = qaytarilgan pul.
+- Test muhiti: mahalliy Supabase CLI (Docker) + soxta CBU (sandbox'dan cbu.uz yopiq); shadcn registry ham yopiq bo'lishi mumkin — komponentlar GitHub'dan (`shadcn-ui/ui`, `apps/v4/registry/new-york-v4/ui`) qo'lda olinadi.
+
+**4-bosqich nimadan boshlanadi:** avval reja va bitta asosiy qaror — maqsadga ajratma qanday yoziladi (masalan, `goal_id` bog'langan tranzaksiya "Jamg'arma" xarajat kategoriyasi bilan, yoki alohida jamg'arma hamyoniga o'tkazma). Keyin: `0015_goals.sql` (goals + `transactions.goal_id` FK), `goal_summary` view (yig'ilgan/to'langan, qolgan, oylik kerakli, progress, real muddat, kechikish), `dashboard_summary()` da shu oyning maqsad ajratmalari (hozir 0), Maqsadlar sahifasi va dashboard kartasi, pul taqsimoti tavsiyasi (majburiy → maqsadlar priority bo'yicha → zaxira % → erkin pul).
 
 ## Ish tartibi
 

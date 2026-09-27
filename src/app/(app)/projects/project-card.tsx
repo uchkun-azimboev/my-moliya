@@ -92,7 +92,9 @@ export function MoneyGrid({ project }: { project: ProjectSummary }) {
           <>
             {" · "}kutilayotgan to&apos;lov:{" "}
             <span className="font-medium whitespace-nowrap text-foreground tabular-nums">
-              {formatMoney(project.expected_uzs, "UZS")}
+              {project.currency === "USD"
+                ? `${formatMoney(project.expected_amount, "USD")} ≈ ${formatMoney(project.expected_uzs, "UZS")}`
+                : formatMoney(project.expected_uzs, "UZS")}
             </span>
           </>
         )}

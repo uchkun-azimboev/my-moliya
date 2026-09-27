@@ -75,10 +75,13 @@ export type ProjectSummary = {
   total_uzs: number | null
   expected_uzs: number | null
   overdue: boolean
+  /** loyiha valyutasida (0014) */
+  received_amount: number
+  expected_amount: number
 }
 
 export const PROJECT_SUMMARY_COLUMNS =
-  "id, client_id, client_name, name, total_amount, currency, start_date, end_date, progress_mode, progress_percent, units_total, units_done, is_retainer, previous_project_id, closed, note, payments, progress, status, received_uzs, earned_uzs, obligation_uzs, total_uzs, expected_uzs, overdue"
+  "id, client_id, client_name, name, total_amount, currency, start_date, end_date, progress_mode, progress_percent, units_total, units_done, is_retainer, previous_project_id, closed, note, payments, progress, status, received_uzs, earned_uzs, obligation_uzs, total_uzs, expected_uzs, overdue, received_amount, expected_amount"
 
 export const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
   obligation: "Majburiyat bor",
