@@ -105,3 +105,29 @@ export function nextPeriod(start: string, end: string | null) {
   const nextStart = addDays(end, 1)
   return { start: nextStart, end: addDays(addMonths(nextStart, 1), -1) }
 }
+
+const SHORT_MONTHS = ["yan", "fev", "mar", "apr", "may", "iyn", "iyl", "avg", "sen", "okt", "noy", "dek"]
+
+/** "2026-10-01" → "1-okt" (grafik o'qlari uchun) */
+export function formatTickDate(date: string) {
+  const [, m, d] = date.split("-").map(Number)
+  return `${d}-${SHORT_MONTHS[m - 1]}`
+}
+
+/** "2026-09-01" → "sen" yoki "sen 25" (yil boshqa bo'lsa) */
+export function formatShortMonth(date: string) {
+  const [y, m] = date.split("-").map(Number)
+  const current = Number(today().slice(0, 4))
+  return `${SHORT_MONTHS[m - 1]}${y !== current ? ` ${String(y).slice(2)}` : ""}`
+}
+
+/** 12 500 000 → "12,5 mln", 800 000 → "800 ming" (grafik o'qlari uchun qisqa) */
+export function formatCompact(value: number) {
+  const n = Math.abs(value)
+  const sign = value < 0 ? "−" : ""
+  const fmt = (v: number) => String(Math.round(v * 10) / 10).replace(".", ",")
+  if (n >= 1e9) return `${sign}${fmt(n / 1e9)} mlrd`
+  if (n >= 1e6) return `${sign}${fmt(n / 1e6)} mln`
+  if (n >= 1e3) return `${sign}${Math.round(n / 1e3)} ming`
+  return `${sign}${Math.round(n)}`
+}

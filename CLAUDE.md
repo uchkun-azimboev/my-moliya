@@ -50,6 +50,8 @@ Ilovaning asosiy savoli: "Keyingi 30–90 kunda pulim yetadimi, majburiyatlarim 
 - PWA `theme-color` tanlangan mavzuga ergashadi (`src/components/theme.tsx`).
 - Pastki menyu (5 tadan oshmaydi): Asosiy · Tranzaksiyalar · Loyihalar · Maqsadlar · Hamyonlar. Sozlamalar — dashboard tepasidagi ⚙️, Kategoriyalar — Sozlamalar ichida, Mijozlar — Loyihalar ichida.
 - Asosiy sahifalarda doim dumaloq "+" tugma — `/transactions/new` (tezkor kiritish) ni ochadi.
+- Hisobotlar — Asosiy bo'limidagi tab (Bugun · Hisobotlar, `/reports`, `src/components/home-tabs.tsx`); menyu o'zgarmaydi. Pastki menyuda bo'lim faolligi `sections` xaritasi orqali (`/reports`, `/settings`, `/categories` → Asosiy).
+- Grafiklar: Recharts, ranglar faqat `var(--chart-1..5)` (validatordan o'tgan palitra, yorug'/qorong'i alohida). Har grafikda legenda va "Jadval ko'rinishi"; qiymat matnlari seriya rangida emas.
 - Budjet — Tranzaksiyalar bo'limidagi tab (Ro'yxat · Budjet, `/budget?month=YYYY-MM`); dashboard "Bu oy" kartasida "Budjet →" havolasi.
 - PWA: `src/app/manifest.ts` (standalone), ikonkalar kod bilan chiziladi (`src/lib/app-icon.tsx`: `/icon`, `/apple-icon`, `/icons/192|512|maskable`), service worker — `src/app/sw.js/route.ts`, ro'yxatdan o'tkazish — `src/components/pwa.tsx`, offline sahifa — `/offline`. Bu yo'llar `src/proxy.ts` matcher'ida login'dan ozod.
 
@@ -70,7 +72,7 @@ Ilovaning asosiy savoli: "Keyingi 30–90 kunda pulim yetadimi, majburiyatlarim 
 - `transactions`: id, date, amount, currency, rate_to_uzs, wallet_id, category_id, project_id (null), goal_id (null), note
 - `transfers`: id, date, from_wallet_id, to_wallet_id, from_amount, to_amount, rate, note
 - `clients`: id, name, note, archived
-- `projects`: id, client_id, name, total_amount, currency, start_date, end_date, progress_mode (percent/units), progress_percent (0–100), units_total, units_done, is_retainer, previous_project_id (retainer oldingi davri), closed (qo'lda yopilgan), note
+- `projects`: id, client_id, name, total_amount, currency, start_date, end_date, progress_mode (percent/units), progress_percent (0–100), units_total, units_done, is_retainer, previous_project_id (retainer oldingi davri), closed (qo'lda yopilgan), continues (retainer davom etadi — prognoz uchun, standart `true`), note
   - **status saqlanmaydi** — `project_summary` view'da hisoblanadi: `closed` yoki bajarilish 100% → `done`, 0% → `obligation`, qolgani → `partial`
 - `goals`: id, name, kind (saving/debt), target_amount, currency, start_amount, deadline, priority (1 — eng muhim), monthly_plan (ixtiyoriy oylik rejadagi to'lov), closed, note
   - **status saqlanmaydi** — `goal_summary` view'da: `closed` → `closed`, qolgan = 0 → `done`, aks holda `active`
@@ -118,8 +120,10 @@ Barcha jadvallarda `user_id`, `created_at` bor.
 - "Oldingi oy rejasini nusxalash" faqat rejasi yo'q kategoriyalarni to'ldiradi (arxivlanganlar nusxalanmaydi)
 - Budjetdan oshgan kategoriyalar soni dashboard'da eslatma bo'lib chiqadi (`budget_over_count`)
 
-**Xavfsiz daromad (reja uchun)**
-Oxirgi 3–6 oydagi eng past oylik daromad.
+**Sof natija** (dashboard "Bu oy" va hisobotlar trendi) = `daromad − xarajat − qarz to'lovlari`.
+
+**Xavfsiz daromad (reja uchun)** — `report_stats()`
+Oxirgi `min(6, to'liq oylar)` to'liq oydagi eng past oylik daromad. To'liq oy = birinchi tranzaksiya oyidan (o'zi ham) joriy oydan oldingi oylar; 3 tadan kam bo'lsa `null` → "Ma'lumot yetarli emas".
 
 **Maqsadlar** — `goal_summary` view (4-bosqich)
 - Ajratma **virtual**: pul hamyonda qoladi. Jamg'arma — `goal_allocations`; qarz to'lovi — `goal_id` bog'langan xarajat ("Qarz to'lovi" kategoriyasi; qarz maqsadi yaratilganda bo'lmasa qo'shiladi). Maqsadga faqat xarajat bog'lanadi
@@ -136,14 +140,22 @@ Oxirgi 3–6 oydagi eng past oylik daromad.
 **Pul taqsimoti tartibi (tavsiya ko'rinishida, Maqsadlar sahifasida)**
 Xavfsiz puldan: 1. Majburiy xarajatlarning oy oxirigacha qolgani → 2. Maqsadlar `priority` bo'yicha, har biriga shu oy rejada qolgani → 3. Qolgani — erkin pul. Zaxira foizi yo'q — zaxira oddiy jamg'arma maqsadi ("Favqulodda zaxira" shabloni)
 
-**Runway**
-`likvid pul ÷ oxirgi 3 oydagi o'rtacha oylik majburiy xarajat`
+**Runway** — `report_stats()`
+`xavfsiz_pul ÷ asos`; asos = oxirgi 3 to'liq oydagi "fixed" guruh xarajatlari o'rtachasi (`'history'`, to'liq oy ≥ 3 va o'rtacha > 0 bo'lsa), aks holda joriy majburiy reja (`dashboard_summary.monthly_fixed_expenses`, `'plan'`), ikkalasi yo'q — `'none'`.
 
 **Mijoz konsentratsiyasi**
-Har bir mijozning oxirgi 6 oydagi daromad ulushi; 50% dan oshsa ogohlantirish.
+`report_clients(6)`: mijoz daromadi = loyihaga bog'langan daromad − loyihaga bog'langan xarajat (qaytarilgan); loyihasiz daromad — "Boshqa daromad". Ulush jamidan; biror mijoz 50% dan oshsa ogohlantirish.
+
+**Trend va kategoriyalar** — `report_monthly(n)` (oy: daromad, xarajat [qarzsiz], qarz to'lovlari, sof), `report_categories(from, to)` (qarz to'lovlari kirmaydi). Sahifada trend boshidagi bo'sh oylar kesiladi.
 
 **Prognoz (30/60/90 kun)**
-`hozirgi pul + kutilayotgan mijoz to'lovlari − doimiy xarajatlar − maqsad/qarz to'lovlari`
+`forecast(p_days)` (kunlik qatorlar) va `forecast_params()` — 0025:
+- Boshlanish: **xavfsiz pul** (bugun).
+- Kirim: `project_summary.expected_uzs` loyiha `end_date` kunida. Sanasi yo'q yoki o'tib ketgan tugallanmagan loyihalar prognozga kirmaydi — alohida qator (`undated_expected_uzs`).
+- Retainer: `is_retainer and continues` va keyingi davri ochilmagan loyiha keyingi davrlarda har davr boshida (`end_date + 1 + (k−1) oy`; end_date yo'q bo'lsa `start + k oy`) `total_amount` to'laydi — faqat "Retainer bilan" chizig'iga. Grafikda ikki chiziq ("Retainer bilan", "Retainersiz"), minusga tushish kuni har biri uchun alohida.
+- Majburiy: joriy oy — oy oxirigacha qolgan (dashboard'dagidek) qolgan kunlarga teng bo'linadi; keyingi oylar — o'sha oyning fixed budjeti, bo'lmasa joriy majburiy reja, kunlarga bo'linib.
+- Boshqa xarajatlar (o'zgaruvchan + ish guruhlari), manba tartibi: (a) `'budget'` — joriy oyda shu guruhlarga budjet bo'lsa (keyingi oylarda o'sha oy budjeti, bo'lmasa joriy); (b) `'history'` — oxirgi 3 to'liq oy o'rtachasi; (c) `'current'` — joriy oyning kunlik o'rtacha sarfi; `'none'` — 0. Manba grafik ostida yoziladi.
+- Maqsad/qarz: joriy oy — rejada qolgani; keyingi oylar — `plan_amount` (bugungi kursda), maqsad qolganidan oshmaydi.
 
 ## Qurish bosqichlari
 
@@ -157,7 +169,7 @@ Faqat joriy bosqich ustida ishla. Keyingi bosqichga egasi aytgandagina o't.
 
 ## Loyiha holati
 
-**Tugagan bosqichlar:** 1 (skelet, CRUD), 2 (dashboard, kunlik limit, CBU, mavzu, sozlamalar), 3 (mijozlar, loyihalar, avans, xavfsiz pul), 4 (maqsadlar, ajratmalar, qarz to'lovlari, taqsimot), 5a (budjet, PWA). Migratsiyalar: `0001`–`0022`.
+**Tugagan bosqichlar:** 1 (skelet, CRUD), 2 (dashboard, kunlik limit, CBU, mavzu, sozlamalar), 3 (mijozlar, loyihalar, avans, xavfsiz pul), 4 (maqsadlar, ajratmalar, qarz to'lovlari, taqsimot), 5a (budjet, PWA), 5b (hisobotlar, prognoz, eksport). Migratsiyalar: `0001`–`0025`.
 
 **Qabul qilingan qarorlar (keyingi sessiyalar uchun):**
 - Next.js 16: middleware fayli `src/proxy.ts`. Auth tekshiruvi `getClaims()`; Supabase loyihasi ES256 (ECC P-256) kalitda — JWT mahalliy tekshiriladi. Legacy HS256 kaliti "previous" holatda qoladi (anon kalit u bilan imzolangan) — revoke qilinmaydi.
@@ -171,11 +183,13 @@ Faqat joriy bosqich ustida ishla. Keyingi bosqichga egasi aytgandagina o't.
 - Maqsad statusi ham saqlanmaydi, faqat `closed`. Maqsad turi (jamg'arma/qarz) yaratilgandan keyin o'zgarmaydi. Ajratmani faqat ajratilgan qoldiqqacha bo'shatish mumkin.
 - `dashboard_summary()` qaytaradigan ustunlar o'zgarsa — migratsiyada `drop function` + `create` (0019, 0022 dagidek).
 - Service worker **versiyalangan**: `sw.js` build vaqtida yaratiladi, versiya = `VERCEL_DEPLOYMENT_ID` (yoki commit / build vaqti). Yangi deploy → yangi SW → `activate` da eski `moliya-*` keshlar o'chadi → `clients.claim()` → sahifa bir marta o'zi qayta yuklanadi (input fokusda bo'lsa — ilova yashiringanda). Yangilanish ilova ochilganda va qayta ko'rinishga kelganda tekshiriladi.
+- Eksport: `/export/moliya.xlsx` (barcha jadvallar, 11 varaq, `write-excel-file`) va `/export/tranzaksiyalar.csv` (UTF-8 BOM, vergul) — route handler'lar `requireUser()` chaqiradi, nomlar ID o'rniga. `exceljs` ishlatilmaydi (zaif `uuid` bog'liqligi).
+- Hisobot funksiyalari (0024, 0025) `security invoker`, anon'dan `revoke execute`.
 - SW faqat `/_next/static/*` va `/icons/*` ni keshlaydi; sahifalar va moliyaviy ma'lumotlar **keshlanmaydi**, internet bo'lmasa faqat `/offline` ko'rsatiladi.
 - Playwright'ning `setOffline()` service worker so'rovlariga ta'sir qilmaydi — offline'ni server to'xtatib sinash kerak.
 - Test muhiti: mahalliy Supabase CLI (Docker) + soxta CBU (sandbox'dan cbu.uz yopiq); shadcn registry ham yopiq bo'lishi mumkin — komponentlar GitHub'dan (`shadcn-ui/ui`, `apps/v4/registry/new-york-v4/ui`) qo'lda olinadi.
 
-**5b nimadan boshlanadi:** avval reja. Hisobotlar (Recharts, ranglar `--chart-*` tokenlari, ikkala mavzu): oyma-oy daromad/xarajat trendi, kategoriyalar ulushi, mijozlar ulushi va 50% konsentratsiya ogohlantirishi, runway (`likvid pul ÷ oxirgi 3 oy o'rtacha majburiy xarajat`), xavfsiz daromad (oxirgi 3–6 oydagi eng past oylik daromad). 30/60/90 kunlik prognoz: hozirgi xavfsiz pul + kutilayotgan loyiha to'lovlari (`project_summary.expected_uzs`, sanasi — `end_date`) − majburiy xarajatlar (budjet yoki sozlama, oylik) − maqsad/qarz rejalari (`goal_summary.plan_amount`). Hisobotlar menyuga sig'maydi — joyini rejada kelishish kerak (masalan dashboard'dan havola yoki boshqa bo'limdagi tab).
+**Keyingi qadam:** barcha 5 bosqich tugadi. Yangi ish faqat egasi aytganda (masalan: mijozlarning reklama budjeti — tranzit pul, hozircha rejada yo'q).
 
 ## Ish tartibi
 

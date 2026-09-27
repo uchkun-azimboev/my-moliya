@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { AlertTriangle, ChevronRight, Settings } from "lucide-react"
+import { HomeTabs } from "@/components/home-tabs"
 import { ensureUsdRate } from "@/lib/cbu"
 import { formatDate, formatMoney, formatPercent, today } from "@/lib/format"
 import { createClient, requireUser } from "@/lib/supabase/server"
@@ -78,7 +79,8 @@ export default async function DashboardPage() {
   const usdBalance = Number(s.usd_balance)
   const rateMissing = usdBalance !== 0 && s.usd_rate === null
   const rateStale = s.usd_rate_date !== null && s.usd_rate_date < s.today
-  const monthNet = Number(s.month_income_uzs) - Number(s.month_expense_uzs)
+  // Sof natija = daromad − xarajat − qarz to'lovlari (pul oqimi, hisobotlardagi bilan bir xil)
+  const monthNet = Number(s.month_income_uzs) - Number(s.month_expense_uzs) - Number(s.debt_paid_month_uzs)
 
   return (
     <>
@@ -88,6 +90,7 @@ export default async function DashboardPage() {
           <Settings className="size-5" />
         </Link>
       </header>
+      <HomeTabs active="today" />
 
       {/* Xavfsiz pul va kunlik limit */}
       {/* Qorong'i rejimda oq plita ko'zni qamashtirmasin — karta rangida, chegara bilan */}

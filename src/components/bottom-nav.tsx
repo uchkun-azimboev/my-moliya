@@ -14,10 +14,10 @@ const items = [
 ]
 
 // Menyuda yo'q bo'limlar qaysi band ostida ko'rinadi (Sozlamalar — dashboard'dagi ⚙️ orqali)
-const sections: Record<string, string> = { "/settings": "/", "/categories": "/", "/clients": "/projects", "/budget": "/transactions" }
+const sections: Record<string, string> = { "/settings": "/", "/categories": "/", "/clients": "/projects", "/budget": "/transactions", "/reports": "/" }
 
 /** "+" tugmasi faqat asosiy sahifalarda — formalar va tahrirlashda xalaqit bermasin */
-const FAB_PAGES = ["/", "/transactions", "/budget", "/projects", "/goals", "/wallets"]
+const FAB_PAGES = ["/", "/reports", "/transactions", "/budget", "/projects", "/goals", "/wallets"]
 
 export function BottomNav() {
   const pathname = usePathname()
@@ -37,7 +37,7 @@ export function BottomNav() {
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
         <ul className="mx-auto grid max-w-md grid-cols-5">
           {items.map(({ href, label, icon: Icon }) => {
-            const active = href === "/" ? pathname === "/" : pathname.startsWith(href) || section === href
+            const active = (href === "/" ? pathname === "/" : pathname.startsWith(href)) || section === href
             return (
               <li key={href}>
                 <Link

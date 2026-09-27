@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ChevronRight, Tags } from "lucide-react"
+import { ChevronRight, Download, Tags } from "lucide-react"
 import { logout } from "@/app/login/actions"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
@@ -36,6 +36,21 @@ export default async function SettingsPage() {
       <section className="mb-8">
         <h2 className="mb-2 text-sm font-medium text-muted-foreground">Oylik majburiy xarajatlar</h2>
         <FixedExpensesForm value={data?.monthly_fixed_expenses ?? null} />
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-2 text-sm font-medium text-muted-foreground">Ma&apos;lumotlarni yuklab olish</h2>
+        <div className="grid grid-cols-2 gap-2">
+          <a href="/export/moliya.xlsx" download className="flex h-11 items-center justify-center gap-2 rounded-md border bg-card text-sm font-medium active:bg-accent">
+            <Download className="size-4" /> Excel (hammasi)
+          </a>
+          <a href="/export/tranzaksiyalar.csv" download className="flex h-11 items-center justify-center gap-2 rounded-md border bg-card text-sm font-medium active:bg-accent">
+            <Download className="size-4" /> CSV (tranzaksiyalar)
+          </a>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Zaxira nusxa: Excel faylida barcha jadvallar alohida varaqlarda (hamyonlar, tranzaksiyalar, loyihalar, maqsadlar, budjet...).
+        </p>
       </section>
 
       <section className="mb-8">

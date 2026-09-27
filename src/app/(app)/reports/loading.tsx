@@ -7,10 +7,12 @@ export default function Loading() {
         <h1 className="text-xl font-semibold">Moliya</h1>
       </header>
       <Skeleton className="mb-4 h-11 w-full" />
-      <Skeleton className="mb-3 h-[11.5rem] rounded-2xl" />
-      <Skeleton className="my-4 h-12 w-full" />
-      <Skeleton className="mb-3 h-36 rounded-xl" />
-      <Skeleton className="mb-3 h-36 rounded-xl" />
+      <div className="mb-3 grid grid-cols-2 gap-3">
+        <Skeleton className="h-24 rounded-xl" />
+        <Skeleton className="h-24 rounded-xl" />
+      </div>
+      <Skeleton className="mb-3 h-96 rounded-xl" />
+      <Skeleton className="h-72 rounded-xl" />
     </div>
   )
 }

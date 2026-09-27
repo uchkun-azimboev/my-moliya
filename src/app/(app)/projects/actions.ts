@@ -142,6 +142,15 @@ export async function openNextPeriod(id: string, closePrevious: boolean): Promis
   redirect(`/projects/${created.id}`)
 }
 
+/** Retainer: keyingi davrlarda davom etadimi (prognozdagi "Retainer bilan" chizig'i uchun) */
+export async function setProjectContinues(id: string, continues: boolean): Promise<ActionState> {
+  const { supabase } = await requireUser()
+  const { error } = await supabase.from("projects").update({ continues }).eq("id", id)
+  if (error) return { error: dbErrorMessage(error) }
+  revalidate()
+  return { ok: true }
+}
+
 export async function deleteProject(id: string): Promise<ActionState> {
   const { supabase } = await requireUser()
   const { error } = await supabase.from("projects").delete().eq("id", id)

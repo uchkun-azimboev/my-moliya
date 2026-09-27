@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button"
 import type { ActionState } from "@/lib/action-state"
 import { formatMoney, formatPercent, formatShortDate, nextPeriod } from "@/lib/format"
 import type { ProjectSummary } from "@/lib/types"
-import { deleteProject, openNextPeriod, setProjectClosed } from "../actions"
+import { deleteProject, openNextPeriod, setProjectClosed, setProjectContinues } from "../actions"
 
 export function ProjectActions({ project, nextPeriodId }: { project: ProjectSummary; nextPeriodId: string | null }) {
   const [closePrevious, setClosePrevious] = useState(true)
+  const [continues, setContinues] = useState(project.continues)
   const [result, setResult] = useState<ActionState>({})
   const [busy, startTransition] = useTransition()
   const run = (fn: () => Promise<ActionState>) => startTransition(async () => setResult(await fn()))
@@ -21,6 +22,32 @@ export function ProjectActions({ project, nextPeriodId }: { project: ProjectSumm
 
   return (
     <div className="space-y-3 border-t pt-6">
+      {project.is_retainer && (
+        <label className="flex items-start gap-3 rounded-xl border bg-card p-3">
+          <input
+            type="checkbox"
+            checked={continues}
+            onChange={(e) => {
+              // darhol ko'rinadi; server xato qaytarsa — eski holatga qaytadi
+              const v = e.target.checked
+              setContinues(v)
+              startTransition(async () => {
+                const r = await setProjectContinues(project.id, v)
+                setResult(r)
+                if (r.error) setContinues(!v)
+              })
+            }}
+            className="mt-0.5 size-5 accent-primary"
+          />
+          <span>
+            <span className="block text-sm font-medium">Davom etadi</span>
+            <span className="block text-xs text-muted-foreground">
+              Prognozda keyingi oylarda ham har davr boshida {formatMoney(project.total_amount, project.currency)} tushadi deb hisoblanadi
+              (&quot;Retainer bilan&quot; chizig&apos;i).
+            </span>
+          </span>
+        </label>
+      )}
       {project.is_retainer &&
         (nextPeriodId ? (
           <Button asChild variant="outline" className="h-11 w-full">
