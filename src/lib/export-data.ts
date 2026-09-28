@@ -61,7 +61,7 @@ export async function loadAllTables(supabase: SupabaseClient): Promise<Table[]> 
     supabase.from("clients").select("name, note, archived").order("name"),
     supabase
       .from("project_summary")
-      .select("client_name, name, total_amount, currency, start_date, end_date, progress, status, received_uzs, earned_uzs, obligation_uzs, expected_uzs, is_retainer, continues, closed, note")
+      .select("client_name, name, total_amount, currency, start_date, end_date, progress, status, received_uzs, earned_uzs, obligation_uzs, client_debt_uzs, expected_uzs, is_retainer, continues, closed, note")
       .order("start_date"),
     supabase
       .from("goal_summary")
@@ -107,10 +107,10 @@ export async function loadAllTables(supabase: SupabaseClient): Promise<Table[]> 
     },
     {
       name: "Loyihalar",
-      header: ["Mijoz", "Nomi", "Summa", "Valyuta", "Boshlanish", "Tugash", "Bajarilish %", "Holat", "Olingan, so'm", "Ishlab topilgan, so'm", "Majburiyat, so'm", "Kutilayotgan, so'm", "Oylik", "Davom etadi", "Qo'lda yopilgan", "Izoh"],
+      header: ["Mijoz", "Nomi", "Summa", "Valyuta", "Boshlanish", "Tugash", "Bajarilish %", "Holat", "Olingan, so'm", "Bajarilgan ish, so'm", "Majburiyat, so'm", "Mijoz qarzi, so'm", "Kutilayotgan, so'm", "Oylik", "Davom etadi", "Qo'lda yopilgan", "Izoh"],
       rows: rows<Record<string, unknown>>(projects).map((p) => [
         p.client_name as string, p.name as string, num(p.total_amount), p.currency as string, p.start_date as string, (p.end_date as string) ?? null,
-        num(p.progress), PROJECT_STATUS_LABEL[p.status as keyof typeof PROJECT_STATUS_LABEL], num(p.received_uzs), num(p.earned_uzs), num(p.obligation_uzs), num(p.expected_uzs),
+        num(p.progress), PROJECT_STATUS_LABEL[p.status as keyof typeof PROJECT_STATUS_LABEL], num(p.received_uzs), num(p.earned_uzs), num(p.obligation_uzs), num(p.client_debt_uzs), num(p.expected_uzs),
         yes(Boolean(p.is_retainer)), yes(Boolean(p.continues)), yes(Boolean(p.closed)), (p.note as string) ?? null,
       ]),
     },
