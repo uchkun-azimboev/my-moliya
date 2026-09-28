@@ -87,6 +87,7 @@ Loyiha spetsifikatsiyasi: [CLAUDE.md](CLAUDE.md).
 24. `0024_reports.sql` — 5b
 25. `0025_forecast.sql` — 5b
 26. `0026_project_obligation_fix.sql` — majburiyat formulasi tuzatildi
+27. `0027_project_bonus_split.sql` — bonus, ortiqcha to'lovni keyingi davrga bo'lish
 
 Har biridan keyin "Success. No rows returned" chiqishi kerak.
 

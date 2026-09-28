@@ -93,10 +93,15 @@ Barcha jadvallarda `user_id`, `created_at` bor.
 - `bajarilish` = progress_percent / 100 yoki units_done / units_total (aniq nisbat; ekranda 1 xona kasr, masalan 41,7%)
 - Quyidagilar **loyiha valyutasida** hisoblanadi (0026), so'mga: UZS — o'zi, USD — bugungi CBU kursida (kurs bo'lmasa to'lovlardagi o'rtacha kurs):
   - `bajarilgan_ish = total_amount × bajarilish` (done/closed — 100%); view'da `work_amount`, so'mda `earned_uzs`; kartada "Bajarilgan ish"
-  - `majburiyat = max(olingan − bajarilgan_ish, 0)`; status `done` bo'lsa 0 (`obligation_amount`, `obligation_uzs`)
+  - `shartnoma_doirasida = min(olingan, total_amount)` (0027)
+  - `majburiyat = max(shartnoma_doirasida − bajarilgan_ish, 0)`; status `done` bo'lsa 0 (`obligation_amount`, `obligation_uzs`)
+  - `bonus = max(olingan − total_amount, 0)` — darhol ishlab topilgan, majburiyatga kirmaydi (`bonus_amount`, `bonus_uzs`); kartada 0 dan katta bo'lsa ko'rsatiladi
   - `mijoz_qarzi = max(bajarilgan_ish − olingan, 0)` (`client_debt_amount`, `client_debt_uzs`); kartada 0 dan katta bo'lsa ko'rsatiladi
   - avvalgi `olingan × %` formulasi faqat to'liq oldindan to'langan loyihada to'g'ri edi — qisman to'lovda majburiyatni oshirib ko'rsatardi
 - `kutilayotgan_to'lov` **loyiha valyutasida**: `max(total_amount − olingan_loyiha_valyutasida, 0)`; so'mda ko'rsatishda faqat shu qolgan qism bugungi CBU kursida o'giriladi (0014). Olingan to'lov loyiha valyutasiga: bir xil valyuta — summaning o'zi; USD to'lov → so'm loyiha — tranzaksiya kursida; so'm to'lov → USD loyiha — to'lov kunidagi CBU kursida
+- Kutilayotgan to'lov **barcha loyihalar** bo'yicha (tugallanganlar ham), `kutilayotgan > 0` bo'lsa: Loyihalar sahifasidagi jami, prognoz (sanasi bo'yicha yoki "sanasi noma'lum" qatori). Tugallangan loyihada qoldiq bo'lsa kartada "To'lov kutilmoqda" belgisi, "To'lov qo'shish" tugmasi ko'rinadi va tranzaksiya formasidagi loyiha ro'yxatiga kiradi
+- Tranzaksiya formasidagi loyiha varianti: `mijoz · nomi · Oy Yil · $700 qoldi` (+ `tugallangan`) — `PROJECT_OPTION_COLUMNS` (`src/lib/types.ts`)
+- Ortiqcha to'lov (0027): yangi daromad loyiha qoldig'idan oshsa (`project_payment_preview()`), saqlashdan oldin tanlov: "Bonus" — hammasi shu loyihaga; "Keyingi davrga" — `split_project_income()` ikki tranzaksiya yozadi (qoldiq shu loyihaga, ortig'i shu mijozning keyingi ochiq davriga; sana, hamyon, kurs bir xil; yig'indi = asl summa). Keyingi davr: tugallanmagan, avval `previous_project_id` shu loyiha bo'lgani, keyin shu nomdagisi, keyin eng yaqin boshlanish sanasi; bo'lmasa tugma ko'rinmaydi. Valyuta farq qilsa qoldiq to'lov valyutasida sentgacha yuqoriga yaxlitlanadi (bir necha so'm bonus qolishi mumkin). Faqat yangi yozuvda tekshiriladi, tahrirda emas
 - `muddati_o'tgan` = tugallanmagan va end_date bugundan oldin
 - Retainer "Keyingi oyni ochish": yangi davr = oldingi tugashdan keyingi kun … +1 oy − 1 kun, bajarilish 0 dan; "Oldingi davrni yopish" standart yoqilgan
 
@@ -171,7 +176,7 @@ Faqat joriy bosqich ustida ishla. Keyingi bosqichga egasi aytgandagina o't.
 
 ## Loyiha holati
 
-**Tugagan bosqichlar:** 1 (skelet, CRUD), 2 (dashboard, kunlik limit, CBU, mavzu, sozlamalar), 3 (mijozlar, loyihalar, avans, xavfsiz pul), 4 (maqsadlar, ajratmalar, qarz to'lovlari, taqsimot), 5a (budjet, PWA), 5b (hisobotlar, prognoz, eksport). Migratsiyalar: `0001`–`0026` (0026 — majburiyat formulasi tuzatildi).
+**Tugagan bosqichlar:** 1 (skelet, CRUD), 2 (dashboard, kunlik limit, CBU, mavzu, sozlamalar), 3 (mijozlar, loyihalar, avans, xavfsiz pul), 4 (maqsadlar, ajratmalar, qarz to'lovlari, taqsimot), 5a (budjet, PWA), 5b (hisobotlar, prognoz, eksport). Migratsiyalar: `0001`–`0027` (0026 — majburiyat formulasi, 0027 — bonus va to'lovni keyingi davrga bo'lish).
 
 **Qabul qilingan qarorlar (keyingi sessiyalar uchun):**
 - Next.js 16: middleware fayli `src/proxy.ts`. Auth tekshiruvi `getClaims()`; Supabase loyihasi ES256 (ECC P-256) kalitda — JWT mahalliy tekshiriladi. Legacy HS256 kaliti "previous" holatda qoladi (anon kalit u bilan imzolangan) — revoke qilinmaydi.

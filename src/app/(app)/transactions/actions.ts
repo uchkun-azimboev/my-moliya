@@ -4,8 +4,23 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { z } from "zod"
 import { dbErrorMessage, type ActionState } from "@/lib/action-state"
+import { formatMonth } from "@/lib/format"
 import { amountSchema, rateSchema } from "@/lib/money"
 import { requireUser } from "@/lib/supabase/server"
+import type { Currency } from "@/lib/types"
+
+/** Daromad tanlangan loyiha qoldig'idan (kutilayotgan) oshsa — saqlashdan oldin tanlov so'raladi */
+export type OverpayInfo = {
+  currency: Currency
+  /** loyiha valyutasida */
+  remaining: number
+  excess: number
+  /** shu mijozning keyingi ochiq davri (bo'lmasa null — "Keyingi davrga" tugmasi ko'rinmaydi) */
+  nextId: string | null
+  nextLabel: string | null
+}
+
+export type TransactionActionState = ActionState & { overpay?: OverpayInfo }
 
 const transactionSchema = z.object({
   date: z.iso.date("Sanani tanlang"),
@@ -38,6 +53,7 @@ async function buildRow(formData: FormData) {
 
   return {
     supabase,
+    kind: category.kind as "income" | "expense",
     row: {
       date: t.date,
       amount: t.amount,
@@ -56,18 +72,63 @@ function revalidate() {
   revalidatePath("/", "layout")
 }
 
-export async function createTransaction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function createTransaction(_prev: TransactionActionState, formData: FormData): Promise<TransactionActionState> {
   const built = await buildRow(formData)
   if ("error" in built) return { error: built.error }
+  const { supabase, row } = built
 
-  const { error } = await built.supabase.from("transactions").insert(built.row)
+  // Loyihaga daromad: qoldiqdan oshsa — "Bonus" yoki "Keyingi davrga" tanlovi
+  const choice = formData.get("overpay")
+  if (built.kind === "income" && row.project_id && choice !== "bonus") {
+    const { data, error } = await supabase
+      .rpc("project_payment_preview", {
+        p_project: row.project_id,
+        p_wallet: row.wallet_id,
+        p_amount: row.amount,
+        p_rate: row.rate_to_uzs,
+        p_date: row.date,
+      })
+      .maybeSingle<{ project_currency: Currency; remaining: number; excess: number; next_project_id: string | null; next_name: string | null; next_start: string | null }>()
+    if (error) return { error: dbErrorMessage(error) }
+
+    if (choice === "next") {
+      if (!data?.next_project_id) return { error: "Keyingi davr topilmadi" }
+      const { error: splitError } = await supabase.rpc("split_project_income", {
+        p_date: row.date,
+        p_amount: row.amount,
+        p_rate: row.rate_to_uzs,
+        p_wallet: row.wallet_id,
+        p_category: row.category_id,
+        p_project: row.project_id,
+        p_next: data.next_project_id,
+        p_note: row.note,
+      })
+      if (splitError) return { error: dbErrorMessage(splitError) }
+      revalidate()
+      return { ok: true }
+    }
+
+    if (data && Number(data.excess) > 0) {
+      return {
+        overpay: {
+          currency: data.project_currency,
+          remaining: Number(data.remaining),
+          excess: Number(data.excess),
+          nextId: data.next_project_id,
+          nextLabel: data.next_project_id ? `${data.next_name} · ${formatMonth(data.next_start!.slice(0, 7))}` : null,
+        },
+      }
+    }
+  }
+
+  const { error } = await supabase.from("transactions").insert(row)
   if (error) return { error: dbErrorMessage(error) }
 
   revalidate()
   return { ok: true }
 }
 
-export async function updateTransaction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function updateTransaction(_prev: TransactionActionState, formData: FormData): Promise<TransactionActionState> {
   const id = z.uuid().safeParse(formData.get("id"))
   if (!id.success) return { error: "Tranzaksiya topilmadi" }
   const built = await buildRow(formData)

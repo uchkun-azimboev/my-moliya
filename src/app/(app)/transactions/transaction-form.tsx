@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useTransition } from "react"
+import { useRef, useState, useTransition } from "react"
+import { flushSync } from "react-dom"
 import { AmountInput } from "@/components/amount-input"
 import { FormError } from "@/components/form-error"
 import { Button } from "@/components/ui/button"
@@ -10,12 +11,11 @@ import { useCbuRate, type CbuRate } from "@/hooks/use-cbu-rate"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { NativeSelect } from "@/components/ui/native-select"
-import { formatDate, formatMoney } from "@/lib/format"
+import { formatDate, formatMoney, formatMonth } from "@/lib/format"
 import { formatAmountInput, normalizeAmount } from "@/lib/money"
-import type { ActionState } from "@/lib/action-state"
-import { DEBT_CATEGORY_NAME, type Category, type CategoryKind, type WalletBalance } from "@/lib/types"
+import { DEBT_CATEGORY_NAME, type Category, type CategoryKind, type ProjectOption, type WalletBalance } from "@/lib/types"
 import { cn } from "@/lib/utils"
-import { createTransaction, deleteTransaction, updateTransaction } from "./actions"
+import { createTransaction, deleteTransaction, updateTransaction, type OverpayInfo, type TransactionActionState } from "./actions"
 
 export type EditableTransaction = {
   id: string
@@ -29,8 +29,13 @@ export type EditableTransaction = {
   note: string | null
 }
 
-/** Tanlash uchun loyiha (faol loyihalar + tahrirlanayotgan yozuvniki) */
-export type ProjectOption = { id: string; name: string; client_name: string }
+/** "DX Holding · SMM · Oktabr 2026 · $700 qoldi · tugallangan" */
+function projectOptionLabel(p: ProjectOption) {
+  const left = Number(p.expected_amount) > 0 ? `${formatMoney(p.expected_amount, p.currency)} qoldi` : "to'langan"
+  return [p.client_name, p.name, formatMonth(p.start_date.slice(0, 7)), left, p.status === "done" && "tugallangan"]
+    .filter(Boolean)
+    .join(" · ")
+}
 
 /** Tanlash uchun maqsad (faol maqsadlar + tahrirlanayotgan yozuvniki) */
 export type GoalOption = { id: string; name: string; kind: "saving" | "debt" }
@@ -99,8 +104,16 @@ export function TransactionForm({
   }
   const [note, setNote] = useState(transaction?.note ?? "")
 
-  const [state, action, pending] = useFormAction(async (prev: ActionState, fd: FormData) => {
+  // Ortiqcha to'lov ogohlantirishi: qaysi kiritish uchun chiqqani eslab qolinadi — maydon o'zgarsa yashiriladi
+  const formRef = useRef<HTMLFormElement>(null)
+  const [overpayChoice, setOverpayChoice] = useState<"" | "bonus" | "next">("")
+  const [overpay, setOverpay] = useState<{ info: OverpayInfo; key: string } | null>(null)
+  const inputKey = [kind, amount, projectId, walletId, rate, date].join("|")
+
+  const [state, action, pending] = useFormAction(async (prev: TransactionActionState, fd: FormData) => {
     const result = await (transaction ? updateTransaction : createTransaction)(prev, fd)
+    setOverpayChoice("")
+    setOverpay(result.overpay ? { info: result.overpay, key: fd.get("overpay_key") as string } : null)
     if (result.ok) {
       // Keyingi yozuv uchun: tur, hamyon, sana va kurs qoladi
       setAmount("")
@@ -113,6 +126,11 @@ export function TransactionForm({
     }
     return result
   }, {})
+
+  function submitWith(choice: "bonus" | "next") {
+    flushSync(() => setOverpayChoice(choice))
+    formRef.current?.requestSubmit()
+  }
 
   const wallet = wallets.find((w) => w.id === walletId)
   const visibleCategories = categories.filter((c) => c.kind === kind)
@@ -129,7 +147,9 @@ export function TransactionForm({
   }
 
   return (
-    <form onSubmit={action} className="space-y-4">
+    <form ref={formRef} onSubmit={action} className="space-y-4">
+      <input type="hidden" name="overpay" value={overpayChoice} />
+      <input type="hidden" name="overpay_key" value={inputKey} />
       {transaction && <input type="hidden" name="id" value={transaction.id} />}
       <input type="hidden" name="category_id" value={categoryId} />
       <input type="hidden" name="wallet_id" value={walletId} />
@@ -257,7 +277,7 @@ export function TransactionForm({
               <option value="">— Loyihasiz —</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.client_name} · {p.name}
+                  {projectOptionLabel(p)}
                 </option>
               ))}
             </NativeSelect>
@@ -287,6 +307,31 @@ export function TransactionForm({
         <Label htmlFor="note">Izoh</Label>
         <Input id="note" name="note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} className="h-11 text-base" />
       </div>
+
+      {overpay && overpay.key === inputKey && !pending && (
+        <div className="space-y-3 rounded-xl bg-warning p-3 text-sm text-warning-foreground" role="alert">
+          <p>
+            Bu davr uchun <b className="tabular-nums">{formatMoney(overpay.info.remaining, overpay.info.currency)}</b> qolgan edi.
+            Ortiqcha <b className="tabular-nums">{formatMoney(overpay.info.excess, overpay.info.currency)}</b> nima?
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={() => submitWith("bonus")}>
+              Bonus
+            </Button>
+            {overpay.info.nextId && (
+              <Button type="button" size="sm" variant="outline" onClick={() => submitWith("next")}>
+                Keyingi davrga ({overpay.info.nextLabel})
+              </Button>
+            )}
+            <Button type="button" size="sm" variant="ghost" onClick={() => setOverpay(null)}>
+              Bekor qilish
+            </Button>
+          </div>
+          <p className="text-xs">
+            Bonus — hammasi shu loyihaga yoziladi. Keyingi davrga — qoldiq shu davrga, ortig&apos;i keyingisiga (ikki yozuv).
+          </p>
+        </div>
+      )}
 
       <FormError message={state.error} />
       {state.ok && !pending && <p className="text-sm text-income">Saqlandi ✓</p>}

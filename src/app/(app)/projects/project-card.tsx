@@ -22,6 +22,11 @@ export function StatusBadge({ project }: { project: ProjectSummary }) {
           Muddati o&apos;tgan
         </span>
       )}
+      {project.status === "done" && Number(project.expected_amount) > 0 && (
+        <span className="rounded-full bg-warning px-2 py-0.5 text-xs font-medium text-warning-foreground">
+          To&apos;lov kutilmoqda
+        </span>
+      )}
       {project.is_retainer && (
         <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">Oylik</span>
       )}
@@ -60,7 +65,7 @@ export function periodText(p: ProjectSummary) {
 /** 1 250 000 (so'msiz) */
 const sum = (v: number) => formatMoney(v, "UZS").replace(" so'm", "")
 
-/** Olingan / bajarilgan ish / majburiyat, mijoz qarzi va kutilayotgan to'lov */
+/** Olingan / bajarilgan ish / majburiyat, mijoz qarzi, bonus va kutilayotgan to'lov */
 export function MoneyGrid({ project }: { project: ProjectSummary }) {
   return (
     <>
@@ -106,6 +111,16 @@ export function MoneyGrid({ project }: { project: ProjectSummary }) {
             {project.currency === "USD"
               ? `${formatMoney(project.client_debt_amount, "USD")} ≈ ${formatMoney(project.client_debt_uzs, "UZS")}`
               : formatMoney(project.client_debt_uzs, "UZS")}
+          </span>
+        </p>
+      )}
+      {Number(project.bonus_uzs) > 0 && (
+        <p className="mt-1 text-xs text-muted-foreground">
+          Bonus (shartnomadan ortiq):{" "}
+          <span className="font-medium whitespace-nowrap text-income tabular-nums">
+            {project.currency === "USD"
+              ? `${formatMoney(project.bonus_amount, "USD")} ≈ ${formatMoney(project.bonus_uzs, "UZS")}`
+              : formatMoney(project.bonus_uzs, "UZS")}
           </span>
         </p>
       )}

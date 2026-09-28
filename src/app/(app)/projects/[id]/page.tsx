@@ -79,11 +79,13 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[id]"
 
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-sm font-medium text-muted-foreground">To&apos;lovlar ({payments.length})</h2>
-        <Button asChild size="sm" variant="ghost">
-          <Link href={`/transactions/new?project=${id}`}>
-            <Plus /> To&apos;lov qo&apos;shish
-          </Link>
-        </Button>
+        {(p.status !== "done" || Number(p.expected_amount) > 0) && (
+          <Button asChild size="sm" variant="ghost">
+            <Link href={`/transactions/new?project=${id}`}>
+              <Plus /> To&apos;lov qo&apos;shish
+            </Link>
+          </Button>
+        )}
       </div>
       {payments.length === 0 ? (
         <p className="mb-6 rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
