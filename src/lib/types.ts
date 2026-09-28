@@ -86,10 +86,13 @@ export type ProjectSummary = {
   obligation_amount: number
   client_debt_amount: number
   client_debt_uzs: number
+  /** 0027: shartnomadan ortiq to'lov — darhol ishlab topilgan, majburiyatga kirmaydi */
+  bonus_amount: number
+  bonus_uzs: number
 }
 
 export const PROJECT_SUMMARY_COLUMNS =
-  "id, client_id, client_name, name, total_amount, currency, start_date, end_date, progress_mode, progress_percent, units_total, units_done, is_retainer, previous_project_id, closed, note, payments, progress, status, received_uzs, earned_uzs, obligation_uzs, total_uzs, expected_uzs, overdue, received_amount, expected_amount, continues, work_amount, obligation_amount, client_debt_amount, client_debt_uzs"
+  "id, client_id, client_name, name, total_amount, currency, start_date, end_date, progress_mode, progress_percent, units_total, units_done, is_retainer, previous_project_id, closed, note, payments, progress, status, received_uzs, earned_uzs, obligation_uzs, total_uzs, expected_uzs, overdue, received_amount, expected_amount, continues, work_amount, obligation_amount, client_debt_amount, client_debt_uzs, bonus_amount, bonus_uzs"
 
 export const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
   obligation: "Majburiyat bor",
@@ -142,3 +145,18 @@ export const GOAL_KIND_LABEL: Record<GoalKind, string> = {
 
 /** Qarz to'lovi kategoriyasi nomi — qarz maqsadi yaratilganda bo'lmasa qo'shiladi */
 export const DEBT_CATEGORY_NAME = "Qarz to'lovi"
+
+/** Tranzaksiya formasidagi loyiha varianti: davri va qoldig'i bilan */
+export type ProjectOption = {
+  id: string
+  name: string
+  client_name: string
+  status: ProjectStatus
+  currency: Currency
+  start_date: string
+  is_retainer: boolean
+  /** kutilayotgan to'lov, loyiha valyutasida */
+  expected_amount: number
+}
+
+export const PROJECT_OPTION_COLUMNS = "id, name, client_name, status, currency, start_date, is_retainer, expected_amount"

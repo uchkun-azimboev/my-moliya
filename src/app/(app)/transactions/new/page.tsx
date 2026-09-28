@@ -2,8 +2,8 @@ import { PageHeader } from "@/components/page-header"
 import { getUsdRate } from "@/lib/cbu"
 import { today } from "@/lib/format"
 import { createClient, requireUser } from "@/lib/supabase/server"
-import type { Category, WalletBalance } from "@/lib/types"
-import { TransactionForm, type GoalOption, type ProjectOption } from "../transaction-form"
+import { PROJECT_OPTION_COLUMNS, type Category, type ProjectOption, type WalletBalance } from "@/lib/types"
+import { TransactionForm, type GoalOption } from "../transaction-form"
 
 /** Tezkor kiritish ("+" tugmasi shu yerga olib keladi) */
 export default async function NewTransactionPage({ searchParams }: PageProps<"/transactions/new">) {
@@ -20,11 +20,12 @@ export default async function NewTransactionPage({ searchParams }: PageProps<"/t
       supabase.from("categories").select("id, name, kind, group_type, icon, archived").eq("archived", false).order("name"),
       supabase.from("transactions").select("wallet_id").order("created_at", { ascending: false }).limit(1).maybeSingle(),
       getUsdRate(supabase, today()),
-      supabase.from("project_summary").select("id, name, client_name").neq("status", "done").order("client_name"),
+      // Faol loyihalar + to'lanmagan qoldig'i bor tugallanganlar
+      supabase.from("project_summary").select(PROJECT_OPTION_COLUMNS).or("status.neq.done,expected_amount.gt.0").order("client_name").order("start_date"),
       supabase.from("goal_summary").select("id, name, kind").eq("status", "active").order("priority"),
     ])
 
-  const projects = (projectData ?? []) as ProjectOption[]
+  const projects = (projectData ?? []) as unknown as ProjectOption[]
   const requested = typeof sp.project === "string" ? sp.project : undefined
   const defaultProjectId = projects.some((p) => p.id === requested) ? requested : undefined
   const goals = (goalData ?? []) as GoalOption[]

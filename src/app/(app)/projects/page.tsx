@@ -26,7 +26,8 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
   const list = showDone ? done : active
 
   const obligation = active.reduce((s, p) => s + Number(p.obligation_uzs), 0)
-  const expected = active.reduce((s, p) => s + Number(p.expected_uzs ?? 0), 0)
+  // Kutilayotgan to'lov — barcha loyihalar (tugallanganlar ham): to'lanmagan qoldiq bo'lsa
+  const expected = all.reduce((s, p) => s + Number(p.expected_uzs ?? 0), 0)
 
   return (
     <>

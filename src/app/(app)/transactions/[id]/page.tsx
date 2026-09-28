@@ -2,8 +2,8 @@ import { notFound } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { today } from "@/lib/format"
 import { createClient, requireUser } from "@/lib/supabase/server"
-import type { Category, WalletBalance } from "@/lib/types"
-import { DeleteTransactionButton, TransactionForm, type EditableTransaction, type GoalOption, type ProjectOption } from "../transaction-form"
+import { PROJECT_OPTION_COLUMNS, type Category, type ProjectOption, type WalletBalance } from "@/lib/types"
+import { DeleteTransactionButton, TransactionForm, type EditableTransaction, type GoalOption } from "../transaction-form"
 
 export default async function EditTransactionPage({ params }: PageProps<"/transactions/[id]">) {
   const { id } = await params
@@ -21,7 +21,7 @@ export default async function EditTransactionPage({ params }: PageProps<"/transa
       .select("id, name, currency, kind, archived, opening_balance, balance")
       .order("created_at"),
     supabase.from("categories").select("id, name, kind, group_type, icon, archived").order("name"),
-    supabase.from("project_summary").select("id, name, client_name, status").order("client_name"),
+    supabase.from("project_summary").select(PROJECT_OPTION_COLUMNS).order("client_name").order("start_date"),
     supabase.from("goal_summary").select("id, name, kind, status").order("priority"),
   ])
   if (!tx) notFound()
@@ -35,9 +35,9 @@ export default async function EditTransactionPage({ params }: PageProps<"/transa
     (c) => !c.archived || c.id === transaction.category_id
   )
 
-  // Faol loyihalar + shu yozuvga bog'langan loyiha (tugallangan bo'lsa ham)
-  const projects = ((projectData ?? []) as (ProjectOption & { status: string })[]).filter(
-    (p) => p.status !== "done" || p.id === transaction.project_id
+  // Faol loyihalar + qoldig'i bor tugallanganlar + shu yozuvga bog'langan loyiha
+  const projects = ((projectData ?? []) as unknown as ProjectOption[]).filter(
+    (p) => p.status !== "done" || Number(p.expected_amount) > 0 || p.id === transaction.project_id
   )
 
   const goals = ((goalData ?? []) as (GoalOption & { status: string })[]).filter(
