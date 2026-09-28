@@ -101,8 +101,8 @@ export function TransferForm({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="min-w-0 space-y-2">
           <Label htmlFor="date">Sana</Label>
           <Input
             id="date"
@@ -114,7 +114,7 @@ export function TransferForm({
             className="h-11 text-base"
           />
         </div>
-        <div className="space-y-2">
+        <div className="min-w-0 space-y-2">
           <Label htmlFor="note">Izoh</Label>
           <Input id="note" name="note" maxLength={200} className="h-11 text-base" />
         </div>

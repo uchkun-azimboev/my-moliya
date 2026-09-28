@@ -67,14 +67,14 @@ export function AllocationForm({ goal, today, allowRelease }: { goal: GoalSummar
           ))}
         </div>
       )}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="relative min-w-0 flex-1">
           <AmountInput name="amount" aria-label="Summa" value={amount} onChange={setAmount} required placeholder="0" className="pr-14" />
           <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground">
             {goal.currency === "USD" ? "USD" : "so'm"}
           </span>
         </div>
-        <Input name="date" type="date" defaultValue={today} aria-label="Sana" className="h-11 w-36 text-base" />
+        <Input name="date" type="date" defaultValue={today} aria-label="Sana" className="h-11 w-full min-w-0 text-base sm:w-36" />
       </div>
       <p className="text-xs text-muted-foreground">
         {release

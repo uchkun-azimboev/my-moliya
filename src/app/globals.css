@@ -106,4 +106,21 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
+  /* iPhone Safari: sana/vaqt inputlari konteynerdan chiqib ketmasin.
+     base qatlamida — utility klasslar (h-11, sm:w-36) ustun turadi */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"] {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    min-height: 2.5rem;
+  }
+  input::-webkit-date-and-time-value {
+    text-align: left;
+  }
 }
