@@ -91,9 +91,11 @@ Barcha jadvallarda `user_id`, `created_at` bor.
 **Loyiha avansi (majburiyat)** — `project_summary` view
 - `olingan_to'lov` = loyihaga bog'langan daromadlar − loyihaga bog'langan xarajatlar (qaytarilgan pul), har biri o'z `rate_to_uzs` kursida so'mga o'giriladi
 - `bajarilish` = progress_percent / 100 yoki units_done / units_total (aniq nisbat; ekranda 1 xona kasr, masalan 41,7%)
-- `ishlab_topilgan = olingan_to'lov × progress_percent / 100`
-- `majburiyat = olingan_to'lov − ishlab_topilgan`
-- status `done` bo'lsa majburiyat = 0 (ishlab topilgan = olingan)
+- Quyidagilar **loyiha valyutasida** hisoblanadi (0026), so'mga: UZS — o'zi, USD — bugungi CBU kursida (kurs bo'lmasa to'lovlardagi o'rtacha kurs):
+  - `bajarilgan_ish = total_amount × bajarilish` (done/closed — 100%); view'da `work_amount`, so'mda `earned_uzs`; kartada "Bajarilgan ish"
+  - `majburiyat = max(olingan − bajarilgan_ish, 0)`; status `done` bo'lsa 0 (`obligation_amount`, `obligation_uzs`)
+  - `mijoz_qarzi = max(bajarilgan_ish − olingan, 0)` (`client_debt_amount`, `client_debt_uzs`); kartada 0 dan katta bo'lsa ko'rsatiladi
+  - avvalgi `olingan × %` formulasi faqat to'liq oldindan to'langan loyihada to'g'ri edi — qisman to'lovda majburiyatni oshirib ko'rsatardi
 - `kutilayotgan_to'lov` **loyiha valyutasida**: `max(total_amount − olingan_loyiha_valyutasida, 0)`; so'mda ko'rsatishda faqat shu qolgan qism bugungi CBU kursida o'giriladi (0014). Olingan to'lov loyiha valyutasiga: bir xil valyuta — summaning o'zi; USD to'lov → so'm loyiha — tranzaksiya kursida; so'm to'lov → USD loyiha — to'lov kunidagi CBU kursida
 - `muddati_o'tgan` = tugallanmagan va end_date bugundan oldin
 - Retainer "Keyingi oyni ochish": yangi davr = oldingi tugashdan keyingi kun … +1 oy − 1 kun, bajarilish 0 dan; "Oldingi davrni yopish" standart yoqilgan
@@ -169,7 +171,7 @@ Faqat joriy bosqich ustida ishla. Keyingi bosqichga egasi aytgandagina o't.
 
 ## Loyiha holati
 
-**Tugagan bosqichlar:** 1 (skelet, CRUD), 2 (dashboard, kunlik limit, CBU, mavzu, sozlamalar), 3 (mijozlar, loyihalar, avans, xavfsiz pul), 4 (maqsadlar, ajratmalar, qarz to'lovlari, taqsimot), 5a (budjet, PWA), 5b (hisobotlar, prognoz, eksport). Migratsiyalar: `0001`–`0025`.
+**Tugagan bosqichlar:** 1 (skelet, CRUD), 2 (dashboard, kunlik limit, CBU, mavzu, sozlamalar), 3 (mijozlar, loyihalar, avans, xavfsiz pul), 4 (maqsadlar, ajratmalar, qarz to'lovlari, taqsimot), 5a (budjet, PWA), 5b (hisobotlar, prognoz, eksport). Migratsiyalar: `0001`–`0026` (0026 — majburiyat formulasi tuzatildi).
 
 **Qabul qilingan qarorlar (keyingi sessiyalar uchun):**
 - Next.js 16: middleware fayli `src/proxy.ts`. Auth tekshiruvi `getClaims()`; Supabase loyihasi ES256 (ECC P-256) kalitda — JWT mahalliy tekshiriladi. Legacy HS256 kaliti "previous" holatda qoladi (anon kalit u bilan imzolangan) — revoke qilinmaydi.

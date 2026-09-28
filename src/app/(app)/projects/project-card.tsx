@@ -60,7 +60,7 @@ export function periodText(p: ProjectSummary) {
 /** 1 250 000 (so'msiz) */
 const sum = (v: number) => formatMoney(v, "UZS").replace(" so'm", "")
 
-/** Olingan / ishlab topilgan / majburiyat va kutilayotgan to'lov */
+/** Olingan / bajarilgan ish / majburiyat, mijoz qarzi va kutilayotgan to'lov */
 export function MoneyGrid({ project }: { project: ProjectSummary }) {
   return (
     <>
@@ -69,7 +69,7 @@ export function MoneyGrid({ project }: { project: ProjectSummary }) {
       <dl className="grid grid-cols-3 gap-2 text-sm">
         {[
           { label: "Olingan", value: project.received_uzs },
-          { label: "Ishlab topilgan", value: project.earned_uzs },
+          { label: "Bajarilgan ish", value: project.earned_uzs },
           { label: "Majburiyat", value: project.obligation_uzs, strong: true },
         ].map((x) => (
           <div key={x.label} className="min-w-0">
@@ -99,6 +99,16 @@ export function MoneyGrid({ project }: { project: ProjectSummary }) {
           </>
         )}
       </p>
+      {Number(project.client_debt_uzs) > 0 && (
+        <p className="mt-1 text-xs text-muted-foreground">
+          Mijoz qarzi (bajarilgan, lekin to&apos;lanmagan):{" "}
+          <span className="font-medium whitespace-nowrap text-foreground tabular-nums">
+            {project.currency === "USD"
+              ? `${formatMoney(project.client_debt_amount, "USD")} ≈ ${formatMoney(project.client_debt_uzs, "UZS")}`
+              : formatMoney(project.client_debt_uzs, "UZS")}
+          </span>
+        </p>
+      )}
     </>
   )
 }
