@@ -84,12 +84,12 @@ export function ProjectForm({ clients, today, project }: { clients: Client[]; to
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="min-w-0 space-y-2">
           <Label htmlFor="start_date">Boshlanish</Label>
           <Input id="start_date" name="start_date" type="date" defaultValue={project?.start_date ?? today} required className="h-11 text-base" />
         </div>
-        <div className="space-y-2">
+        <div className="min-w-0 space-y-2">
           <Label htmlFor="end_date">Tugash</Label>
           <Input id="end_date" name="end_date" type="date" defaultValue={project?.end_date ?? ""} className="h-11 text-base" />
         </div>
