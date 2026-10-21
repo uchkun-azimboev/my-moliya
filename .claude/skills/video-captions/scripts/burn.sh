@@ -5,7 +5,7 @@ set -euo pipefail
 in="$1"; ass="$2"; out="$3"; crf="${4:-18}"
 assdir="$(cd "$(dirname "$ass")" && pwd)"; assname="$(basename "$ass")"
 ffmpeg -hide_banner -y -i "$in" \
-  -vf "ass=${assdir//:/\\:}/${assname}:fontsdir=/usr/share/fonts" \
+  -vf "ass=${assdir//:/\\:}/${assname}:fontsdir=${FONTSDIR:-$(cd "$(dirname "$0")/../fonts" && pwd)}" \
   -c:v libx264 -preset medium -crf "$crf" -pix_fmt yuv420p \
   -c:a aac -b:a 192k -movflags +faststart "$out"
 echo "Tayyor: $out"

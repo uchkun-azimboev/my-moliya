@@ -22,6 +22,7 @@ Skriptlar: `.claude/skills/video-captions/scripts/`
 | `transcribe.py VIDEO [--lang uz] [--model small] [--prompt "nomlar"]` | Avtomatik transkripsiya → `.words.json` + `.srt` |
 | `align_script.py VIDEO matn.txt` | Model yo'q bo'lsa: egasi bergan matnni pauzalar bo'yicha taxminiy vaqtlaydi |
 | `make_ass.py WORDS.json VIDEO [uslub]` | Subtitr fayli `.ass` |
+| `make_editorial.py plan.txt WORDS.json VIDEO --out c.ass` | "Editorial" uslubi (pastda) |
 | `burn.sh VIDEO captions.ass OUT.mp4` | Subtitrni videoga kuydirish |
 | `preview.sh OUT.mp4 kadrlar/` | Tekshirish uchun kadrlar (Read bilan ko'r) |
 
@@ -43,6 +44,35 @@ Skriptlar: `.claude/skills/video-captions/scripts/`
 4. **Sinov kadrlari.** `burn.sh` → `preview.sh` → kadrlarni Read bilan ko'rib, joylashuv
    va o'lcham yuzni/muhim joyni yopmasligini tekshir. Egasiga ko'rsat.
 5. **Yakuniy eksport.** H.264, CRF 18, AAC 192k, `+faststart`. Tayyor faylni SendUserFile bilan yubor.
+
+## "Editorial" uslubi (egasi tanlagan asosiy uslub)
+
+Namuna: premium "kinetik tipografiya" — ekran o'rtasida (ko'krak ro'parasida), 1–3 qatorli
+blok, qatorlar zinapoya bo'lib chapga/o'ngga siljigan va zich (biroz ustma-ust). Kontur yo'q,
+kremsimon oq (`F4F1EC`) + yumshoq qora soya. So'z aytilganda tez paydo bo'ladi (130 ms), katta
+urg'u so'zi harfma-harf chapdan o'ngga ochiladi. Blok ibora tugaguncha turadi, keyin to'liq almashadi.
+
+Shriftlar: `Inter Display` Bold (asosiy, harflar zich), ExtraBold ×1.95 (urg'u),
+Bold Italic (kursiv), `Instrument Serif` ×1.38 (`fonts/`, OFL litsenziya).
+
+Reja fayli (`plan.txt`) — bo'sh qator = yangi ekran, har qator = ekrandagi qator:
+
+```
+hozirda sotuv
+*operatorlarini*
+izlayapmiz.
+
+Ofisimiz
+_Toshkent shahri_
+```
+
+`*katta urg'u*`, `_serif_`, `~kursiv~` (bir necha so'zni o'rashi mumkin). Urg'u so'zlarini
+o'zing taklif qil, egasi tasdiqlaydi. Ekranda 3–6 so'z, 3 qatordan oshmasin; har ekranda ko'pi bilan
+bitta katta so'z. Qator kengligi 86% dan oshsa avtomatik kichrayadi.
+Sozlash: `--y` (blok balandligi, standart 0.60), `--size`, `--stagger`, `--lead`, `--color`.
+
+Bu uslubda so'z vaqtlari aniq bo'lishi muhim (har so'z alohida chiqadi) — iloji bo'lsa
+`transcribe.py`; `align_script.py` faqat zaxira.
 
 ## Qoidalar
 
