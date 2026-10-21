@@ -16,3 +16,10 @@ next-env.d.ts
 *.pem
 npm-debug.log*
 .vercel
+
+# video montaj (skill: video-captions) — videolar repoga tushmaydi
+/video/
+*.mp4
+*.mov
+*.m4a
+*.wav
