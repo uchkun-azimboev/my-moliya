@@ -109,9 +109,11 @@ def main():
     p.add_argument("video")
     p.add_argument("--out", required=True)
     p.add_argument("--size", type=float, default=0.078, help="asosiy shrift, kenglikka nisbat")
-    p.add_argument("--y", type=float, default=0.60, help="blok markazi, balandlikka nisbat (0 tepa, 1 past)")
+    p.add_argument("--y", type=float, default=0.68, help="blok markazi, balandlikka nisbat (0 tepa, 1 past)")
     p.add_argument("--color", default="F4F1EC", help="matn rangi RRGGBB")
     p.add_argument("--stagger", type=float, default=0.055, help="qatorlar siljishi, kenglikka nisbat")
+    p.add_argument("--shadow", type=lambda v: int(v, 0), default=0x50, help="soya shaffofligi 0 (to'q) .. 255 (yo'q)")
+    p.add_argument("--halo", type=lambda v: int(v, 0), default=0x90, help="harf atrofidagi yumshoq halo, 0..255")
     p.add_argument("--lead", type=float, default=0.86, help="qatorlar orasi (shrift o'lchamiga nisbat)")
     a = p.parse_args()
 
@@ -147,13 +149,13 @@ def main():
             y += heights[li]
             off = offsets[li % len(offsets)] * W if len(lines) > 1 else 0
             cx = min(max(W / 2 + off, wd / 2 + W * 0.06), W - wd / 2 - W * 0.06)
-            for layer, shadow in ((0, True), (1, False)):
+            for layer, shadow in ((0, "drop"), (1, "halo"), (2, None)):
                 parts = []
                 for wj, (w, st) in enumerate(ln):
                     fn, wt, it, sc, sp, _ = STYLES[st]
                     fs = round(base * sc * k)
                     t0 = int((times[wi + wj][0] - b_start) * 1000)
-                    target = "&H70&" if shadow else "&H00&"
+                    target = {"drop": f"&H{a.shadow:02X}&", "halo": f"&H{a.halo:02X}&", None: "&H00&"}[shadow]
                     tag = f"{{\\fn{fn}\\b{wt}\\i{it}\\fs{fs}\\fsp{sp * fs:.1f}"
                     word = esc(w) + (" " if wj < len(ln) - 1 else "")
                     if st == "big":  # harfma-harf ochilish
@@ -163,8 +165,10 @@ def main():
                             for i, c in enumerate(word)))
                     else:
                         parts.append(tag + f"\\alpha&HFF&\\t({t0},{t0 + 130},\\alpha{target})}}{word}")
-                pos_y = y + (round(base * 0.06) if shadow else 0)
-                look = ("\\1c&H000000&\\blur14\\bord0\\shad0" if shadow else f"\\1c{col}\\bord0\\shad0\\blur0.6")
+                pos_y = y + (round(base * 0.07) if shadow == "drop" else 0)
+                look = {"drop": f"\\1c&H000000&\\bord0\\shad0\\blur{round(base * 0.28)}",
+                        "halo": f"\\1c&H000000&\\3c&H000000&\\bord{max(round(base * 0.05), 1)}\\shad0\\blur{round(base * 0.12)}",
+                        None: f"\\1c{col}\\bord0\\shad0\\blur0.6"}[shadow]
                 events.append(f"Dialogue: {layer},{ass_time(b_start)},{ass_time(b_end)},Cap,,0,0,0,,"
                               f"{{\\an2\\pos({cx:.0f},{pos_y:.0f}){look}}}" + "".join(parts))
             wi += len(ln)
